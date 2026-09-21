@@ -74,6 +74,7 @@
     
     function updateCollision() {
       debug.innerText = ""
+      player.onGround = false
       for (let box of boxes) {
         let a = {x: player.x, y: player.y, z: player.z, ...player.hitbox}
         let b = {...box.position, xs: box.geometry.parameters.width, ys: box.geometry.parameters.height, zs: box.geometry.parameters.depth}
@@ -129,6 +130,7 @@
             player.z -= player.velZ
             player.velZ = 0
           }
+          player.onGround = player.onGround || (optimalMovement.y == 1)
         }
       }
     }
@@ -142,7 +144,7 @@
       rotationY: 0,
       rotationZ: 0,
       speed: 0.03,
-      jumpPower: 0.03,
+      jumpPower: 0.1,
       velX: 0,
       velY: 0,
       velZ: 0,
@@ -150,6 +152,8 @@
       yaw: 0,
       pitch: 0,
       friction: 1.5,
+      frictionY: 1.01,
+      onGround: false,
       hitbox: {
         xs: 0.5,
         ys: 1,
@@ -175,12 +179,12 @@
         player.velX += player.speed * Math.cos(player.yaw)
         player.velZ -= player.speed * Math.sin(player.yaw)
       }
-      if (keys[" "]) {
+      if (keys[" "] && player.onGround) {
         player.velY += player.jumpPower
       }
-      if (keys["shift"]) {
+      /*if (keys["shift"]) {
         player.velY -= player.jumpPower
-      }
+      }*/
       
       player.x += player.velX
       player.y += player.velY
@@ -190,7 +194,7 @@
 
       player.velY -= player.gravity
       player.velX /= player.friction
-      player.velY /= player.friction
+      player.velY /= player.frictionY
       player.velZ /= player.friction
       camera.position.x = player.x
       camera.position.y = player.y + player.height
