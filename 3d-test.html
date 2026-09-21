@@ -182,9 +182,6 @@
       if (keys[" "] && player.onGround) {
         player.velY += player.jumpPower
       }
-      /*if (keys["shift"]) {
-        player.velY -= player.jumpPower
-      }*/
       
       player.x += player.velX
       player.y += player.velY
@@ -233,7 +230,6 @@
     renderer.domElement.addEventListener("mouseup", (e) => {
       mouse.down = false
     })
-    
 
     // Animation
     let targetFPS = 60
