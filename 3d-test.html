@@ -13,6 +13,7 @@
   </style>
 </head>
 <body>
+  <pre id="debug" style="position:fixed;color:#ffffff"></pre>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
@@ -23,85 +24,177 @@
 
     // Camera
     let camera = new THREE.PerspectiveCamera(
-      75,
+      75, // fov
       window.innerWidth / window.innerHeight,
       0.1, // near clipping
-      100 // far clipping
+      1000 // far clipping
     )
 
     // Renderer
     let renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(renderer.domElement)
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.VSMShadowMap; // Basic, PCF, PCFSoft, VSM
     
     // Lighting
-    let light = new THREE.AmbientLight(
-      0xffffff,
-      0.1
-    )
-    scene.add(light)
-    let hemisphereLight = new THREE.HemisphereLight(
-      0xaaaaff,
-      0x222222,
-      2
-    )
+    let ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
+    scene.add(ambientLight)
+    let hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.3)
     scene.add(hemisphereLight)
+    let directionalLight = new THREE.DirectionalLight(0xffffff, 1)
+    directionalLight.position.set(10, 20, 30)
 
+    directionalLight.castShadow = true
+    directionalLight.shadow.mapSize.set(2048, 2048)
+    directionalLight.shadow.camera.near = 0.5
+    directionalLight.shadow.camera.far = 500
+    directionalLight.shadow.camera.left = -10
+    directionalLight.shadow.camera.right = 10
+    directionalLight.shadow.bias = -0.0005
+
+    scene.add(directionalLight)
     // Cube
-    let geometry = new THREE.BoxGeometry()
-    let material = new THREE.MeshStandardMaterial()
-    for (let i = 0; i < 500; i++) {
+    let boxes = []
+    function addBox(x,y,z,xs,ys,zs, settings = {color:0xffffff}, mat = THREE.MeshStandardMaterial) {
+      let geometry = new THREE.BoxGeometry(xs,ys,zs)
+      let material = new mat(settings)
       let cube = new THREE.Mesh(geometry, material)
-      let x = Math.random() * 20 - 10
-      let y = Math.random() * 20 - 10
-      let z = Math.random() * 20 - 10
-      if (x*x+y*y+z*z<10**2) continue
+      cube.castShadow = true
+      cube.receiveShadow = true
       cube.position.x = x
       cube.position.y = y
       cube.position.z = z
-      cube.rotation.x = Math.random()*100
-      cube.rotation.y = Math.random()*100
-      cube.rotation.z = Math.random()*100
       scene.add(cube)
+      boxes.push(cube)
+      return cube
     }
+    addBox(0,0,0,100,1,100, {color:0x00ff00})
+    addBox(0,1,-5,1,1,1, {color:0xffffff})
     
+    function updateCollision() {
+      debug.innerText = ""
+      for (let box of boxes) {
+        let a = {x: player.x, y: player.y, z: player.z, ...player.hitbox}
+        let b = {...box.position, xs: box.geometry.parameters.width, ys: box.geometry.parameters.height, zs: box.geometry.parameters.depth}
+        
+        // AABB
+
+        let aMinX = a.x - a.xs / 2
+        let aMaxX = a.x + a.xs / 2
+        let aMinY = a.y - a.ys / 2
+        let aMaxY = a.y + a.ys / 2
+        let aMinZ = a.z - a.zs / 2
+        let aMaxZ = a.z + a.zs / 2
+        let bMinX = b.x - b.xs / 2
+        let bMaxX = b.x + b.xs / 2
+        let bMinY = b.y - b.ys / 2
+        let bMaxY = b.y + b.ys / 2
+        let bMinZ = b.z - b.zs / 2
+        let bMaxZ = b.z + b.zs / 2
+      
+        let collision = aMinX <= bMaxX &&
+        aMaxX >= bMinX &&
+        aMinY <= bMaxY &&
+        aMaxY >= bMinY &&
+        aMinZ <= bMaxZ &&
+        aMaxZ >= bMinZ
+
+        if (collision) {
+          let distances = [
+            [bMaxX - aMinX, {x: 1,y: 0,z: 0, type: "x"}], // right
+            [aMaxX - bMinX, {x:-1,y: 0,z: 0, type: "x"}], // left
+            [bMaxY - aMinY, {x: 0,y: 1,z: 0, type: "y"}], // top
+            [aMaxY - bMinY, {x: 0,y:-1,z: 0, type: "y"}], // bottom
+            [bMaxZ - aMinZ, {x: 0,y: 0,z: 1, type: "z"}], // front
+            [aMaxZ - bMinZ, {x: 0,y: 0,z:-1, type: "z"}]  // back
+          ]
+          let leastDistance = 1/0
+          let optimalMovement
+          for (let d of distances) {
+            if (d[0] < leastDistance) {
+              leastDistance = d[0]
+              optimalMovement = d[1]
+            }
+          }
+          if (optimalMovement.type == "x") {
+            player.x -= player.velX
+            player.velX = 0
+          }
+          if (optimalMovement.type == "y") {
+            player.y -= player.velY
+            player.velY = 0
+          }
+          if (optimalMovement.type == "z") {
+            player.z -= player.velZ
+            player.velZ = 0
+          }
+        }
+      }
+    }
+
     // Player
     let player = {
       x: 0,
-      y: 0,
+      y: 1.1,
       z: 0,
       rotationX: 0,
       rotationY: 0,
       rotationZ: 0,
-      speed: 0.1,
-      jumpPower: 4,
+      speed: 0.03,
+      jumpPower: 0.03,
       velX: 0,
       velY: 0,
       velZ: 0,
       height: 1,
       yaw: 0,
       pitch: 0,
+      friction: 1.5,
+      hitbox: {
+        xs: 0.5,
+        ys: 1,
+        zs: 0.5
+      },
+      gravity: 0.01,
     }
 
     function updatePlayer() {
-      window.camera = camera
+      if (keys["w"]) {
+        player.velX -= player.speed * Math.sin(player.yaw)
+        player.velZ -= player.speed * Math.cos(player.yaw)
+      }
+      if (keys["s"]) {
+        player.velX += player.speed * Math.sin(player.yaw)
+        player.velZ += player.speed * Math.cos(player.yaw)
+      }
+      if (keys["a"]) {
+        player.velX -= player.speed * Math.cos(player.yaw)
+        player.velZ += player.speed * Math.sin(player.yaw)
+      }
+      if (keys["d"]) {
+        player.velX += player.speed * Math.cos(player.yaw)
+        player.velZ -= player.speed * Math.sin(player.yaw)
+      }
+      if (keys[" "]) {
+        player.velY += player.jumpPower
+      }
+      if (keys["shift"]) {
+        player.velY -= player.jumpPower
+      }
+      
       player.x += player.velX
       player.y += player.velY
+      player.z += player.velZ
+
+      updateCollision()
+
+      player.velY -= player.gravity
+      player.velX /= player.friction
+      player.velY /= player.friction
+      player.velZ /= player.friction
       camera.position.x = player.x
       camera.position.y = player.y + player.height
       camera.position.z = player.z
-      if (keys["w"]) {
-        player.z += player.speed
-      }
-      if (keys["s"]) {
-        player.z -= player.speed
-      }
-      if (keys["a"]) {
-        player.x -= player.speed
-      }
-      if (keys["d"]) {
-        player.x += player.speed
-      }
     }
 
     // Listeners
@@ -127,6 +220,7 @@
         player.yaw -= e.movementX*0.01
         player.pitch -= e.movementY*0.01
         camera.rotation.order = "YXZ" // this appears to work for some reason
+        player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch))
         camera.rotation.x = player.pitch
         camera.rotation.y = player.yaw
       }
