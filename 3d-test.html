@@ -79,6 +79,8 @@
       velY: 0,
       velZ: 0,
       height: 1,
+      yaw: 0,
+      pitch: 0,
     }
 
     function updatePlayer() {
@@ -122,9 +124,11 @@
     })
     renderer.domElement.addEventListener("mousemove", (e) => {
       if (document.pointerLockElement === renderer.domElement) {
-        camera.rotation.x -= e.movementY*0.01
-        camera.rotation.y -= e.movementX*0.01
-        
+        player.yaw -= e.movementX*0.01
+        player.pitch -= e.movementY*0.01
+        camera.rotation.order = "YXZ" // this appears to work for some reason
+        camera.rotation.x = player.pitch
+        camera.rotation.y = player.yaw
       }
     })
     
