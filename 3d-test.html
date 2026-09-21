@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Three.js Cube</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+
+    // Scene
+    let scene = new THREE.Scene()
+    scene.background = new THREE.Color(0x111111)
+
+    // Camera
+    let camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1, // near clipping
+      100 // far clipping
+    )
+
+    // Renderer
+    let renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    document.body.appendChild(renderer.domElement)
+    
+    // Lighting
+    let light = new THREE.AmbientLight(
+      0xffffff,
+      0.1
+    )
+    scene.add(light)
+    let hemisphereLight = new THREE.HemisphereLight(
+      0xaaaaff,
+      0x222222,
+      2
+    )
+    scene.add(hemisphereLight)
+
+    // Cube
+    let geometry = new THREE.BoxGeometry()
+    let material = new THREE.MeshStandardMaterial()
+    let cube = new THREE.Mesh(geometry, material)
+    scene.add(cube)
+    
+    // Player
+    let player = {
+      x: 0,
+      y: 0,
+      z: 3,
+      rotationX: 0,
+      rotationY: 0,
+      rotationZ: 0,
+      speed: 0.1,
+      jumpPower: 4,
+      velX: 0,
+      velY: 0,
+      velZ: 0,
+      height: 1,
+    }
+
+    function updatePlayer() {
+      window.camera = camera
+      player.x += player.velX
+      player.y += player.velY
+      camera.position.x = player.x
+      camera.position.y = player.y + player.height
+      camera.position.z = player.z
+      if (keys["w"]) {
+        player.z += player.speed
+      }
+      if (keys["s"]) {
+        player.z -= player.speed
+      }
+      if (keys["a"]) {
+        player.x -= player.speed
+      }
+      if (keys["d"]) {
+        player.x += player.speed
+      }
+    }
+
+    // Listeners
+
+    let keys = {}
+    addEventListener("keydown", (e) => {
+      keys[e.key.toLowerCase()] = true
+    })
+    addEventListener("keyup", (e) => {
+      keys[e.key.toLowerCase()] = false
+    })
+    renderer.domElement.addEventListener("click", (e) => {
+      renderer.domElement.requestPointerLock()
+    })
+
+    // Animation
+    let targetFPS = 60
+    let lastRender = 0
+    function animate() {
+      updatePlayer()
+      if (Date.now() - lastRender < 1000/targetFPS) {
+        requestAnimationFrame(animate)
+        return
+      }
+      cube.rotation.x = Math.PI/4
+      cube.rotation.y = Math.PI/4
+      renderer.render(scene, camera)
+      requestAnimationFrame(animate)
+    }
+    animate()
+  </script>
+</body>
+</html>
