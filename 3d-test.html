@@ -50,14 +50,26 @@
     // Cube
     let geometry = new THREE.BoxGeometry()
     let material = new THREE.MeshStandardMaterial()
-    let cube = new THREE.Mesh(geometry, material)
-    scene.add(cube)
+    for (let i = 0; i < 500; i++) {
+      let cube = new THREE.Mesh(geometry, material)
+      let x = Math.random() * 20 - 10
+      let y = Math.random() * 20 - 10
+      let z = Math.random() * 20 - 10
+      if (x*x+y*y+z*z<10**2) continue
+      cube.position.x = x
+      cube.position.y = y
+      cube.position.z = z
+      cube.rotation.x = Math.random()*100
+      cube.rotation.y = Math.random()*100
+      cube.rotation.z = Math.random()*100
+      scene.add(cube)
+    }
     
     // Player
     let player = {
       x: 0,
       y: 0,
-      z: 3,
+      z: 0,
       rotationX: 0,
       rotationY: 0,
       rotationZ: 0,
@@ -93,6 +105,9 @@
     // Listeners
 
     let keys = {}
+    let mouse = {
+      down: false,
+    }
     addEventListener("keydown", (e) => {
       keys[e.key.toLowerCase()] = true
     })
@@ -102,6 +117,21 @@
     renderer.domElement.addEventListener("click", (e) => {
       renderer.domElement.requestPointerLock()
     })
+    renderer.domElement.addEventListener("mousedown", (e) => {
+      mouse.down = true
+    })
+    renderer.domElement.addEventListener("mousemove", (e) => {
+      if (document.pointerLockElement === renderer.domElement) {
+        camera.rotation.x -= e.movementY*0.01
+        camera.rotation.y -= e.movementX*0.01
+        
+      }
+    })
+    
+    renderer.domElement.addEventListener("mouseup", (e) => {
+      mouse.down = false
+    })
+    
 
     // Animation
     let targetFPS = 60
@@ -112,8 +142,6 @@
         requestAnimationFrame(animate)
         return
       }
-      cube.rotation.x = Math.PI/4
-      cube.rotation.y = Math.PI/4
       renderer.render(scene, camera)
       requestAnimationFrame(animate)
     }
