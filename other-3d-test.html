@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3d Game</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .crosshair-horizontal {
+      width: 20px;
+      height: 0;
+      border-bottom: 1px solid white;
+    }
+
+    .crosshair-vertical {
+      width: 0;
+      height: 20px;
+      border-right: 1px solid white;
+    }
+  </style>
+</head>
+
+<body>
+  <pre id="debug" style="position:fixed;color:#ffffff"></pre>
+  <div class="crosshair crosshair-horizontal"></div>
+  <div class="crosshair crosshair-vertical"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+
+    // Scene
+    let scene = new THREE.Scene()
+    scene.background = new THREE.Color(0x111111)
+    scene.fog = new THREE.Fog(0x111111, 20, 30)
+
+    // Camera
+    let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000)
+
+    // Renderer
+    let renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    document.body.appendChild(renderer.domElement)
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.VSMShadowMap // Basic, PCF, PCFSoft, VSM
+
+    // Player
+
+    let player = {
+      x: 0, y: 10, z: 0,
+      velX: 0, velY: 0, velZ: 0,
+      rotationX: 0, rotationY: 0, rotationZ: 0,
+      yaw: 0, pitch: 0,
+      speed: 0.015,
+      jumpPower: 0.175,
+      height: 1.62/2,
+      friction: 1.2,
+      frictionY: 1.01,
+      onGround: false,
+      hitbox: {xs: 0.6, ys: 1.8, zs: 0.6},
+      gravity: 0.007,
+    }
+    
+    // initialization
+    function initLighting() {
+      let ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
+      scene.add(ambientLight)
+      let hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.3)
+      scene.add(hemisphereLight)
+      function addDirLight(x,y,z, color, intensity) {
+        let directionalLight = new THREE.DirectionalLight(color, intensity)
+        directionalLight.position.set(x,y,z)
+
+        directionalLight.castShadow = true
+        directionalLight.shadow.mapSize.set(2048, 2048)
+        directionalLight.shadow.camera.near = 0.5
+        directionalLight.shadow.camera.far = 50
+        directionalLight.shadow.camera.left = -10
+        directionalLight.shadow.camera.right = 10
+        directionalLight.shadow.bias = -0.0005
+
+        scene.add(directionalLight)
+      }
+      addDirLight(500,1000,1500,0xffffff, 1)
+      addDirLight(-1500,1000,-500,0xffffff, 0.1)
+    }
+
+    let linesGroup = new THREE.Group()
+    function initScene() {
+      // floor
+      addBox(0,0,0,100,1,100, {color:0x00ff00}, (box)=>{
+        box.position.x = player.x
+        box.position.z = player.z
+      })
+      for (let i = -50; i < 50; i++) linesGroup.add(makeLine(i+0.5,0.51,-50,i+0.5,0.51,50,0xffff00))
+      for (let i = -50; i < 50; i++) linesGroup.add(makeLine(-50,0.51,i+0.5,50,0.51,i+0.5,0xffff00))
+      scene.add(linesGroup)
+
+      // Generate staircase
+      function getRandomLambda(min, max) {
+        return () => Math.floor(Math.random()*(max - min)+min)
+      }
+      for (let i = 0; i < 100; i++) {
+        let x = Math.floor(Math.random()*100)-50
+        let z = Math.floor(Math.random()*100)-50
+        let barrierWidth = Math.floor(Math.random()*10)
+        let barrierHeight = 2
+        let type = Math.random()<0.5
+        for (let j = 0; j < barrierWidth; j++) {
+          for (let k = 0; k < barrierHeight; k++) {
+            if (type) {
+              addBox(x+j,1+k,z)
+            } else {
+              addBox(x,1+k,z+j)
+            }
+          }
+        }
+      }
+    }
+
+    let keys = {}
+    let mouse = {down: false}
+    function initListeners() {
+      addEventListener("keydown", (e) => {
+        keys[e.key.toLowerCase()] = true
+      })
+      addEventListener("keyup", (e) => {
+        keys[e.key.toLowerCase()] = false
+      })
+      renderer.domElement.addEventListener("click", (e) => {
+        renderer.domElement.requestPointerLock()
+      })
+      renderer.domElement.addEventListener("mousedown", (e) => {
+        mouse.down = true
+      })
+      renderer.domElement.addEventListener("mousemove", (e) => {
+        if (document.pointerLockElement === renderer.domElement) {
+          player.yaw -= e.movementX/window.innerWidth*Math.PI
+          player.pitch -= e.movementY/window.innerHeight*Math.PI
+          camera.rotation.order = "YXZ" // this appears to work for some reason
+          player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch))
+          camera.rotation.x = player.pitch
+          camera.rotation.y = player.yaw
+        }
+      })
+      
+      renderer.domElement.addEventListener("mouseup", (e) => {
+        mouse.down = false
+      })
+      window.addEventListener("resize", (e) => {
+        // https://discourse.threejs.org/t/how-can-i-resize-my-scene-to-be-100-of-the-windows-width-when-its-browser-resized-to-a-smaller-size/14135/3
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( window.innerWidth, window.innerHeight );
+      })
+    }
+
+    function init() {
+      initLighting()
+      initListeners()
+      initScene()
+    }
+
+    // Object creation
+    let boxes = []
+    function addBox(x,y,z,xs=1,ys=1,zs=1, settings = {color:0xffffff}, callback=false) {
+      let geometry = new THREE.BoxGeometry(xs,ys,zs)
+      let material = new THREE.MeshStandardMaterial(settings)
+      let cube = new THREE.Mesh(geometry, material)
+      cube.castShadow = true
+      cube.receiveShadow = true
+      cube.position.x = x
+      cube.position.y = y
+      cube.position.z = z
+      if (callback) cube.userData.callback = callback
+      scene.add(cube)
+      boxes.push(cube)
+      return cube
+    }
+    function addLine(x1, y1, z1, x2, y2, z2, color) {
+      let line = makeLine(x1, y1, z1, x2, y2, z2, color)
+      scene.add(line)
+      return line
+    }
+    function makeLine(x1, y1, z1, x2, y2, z2, color) {
+      let material = new THREE.LineBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.2
+      })
+
+      let geometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x1, y1, z1),
+        new THREE.Vector3(x2, y2, z2),
+      ])
+      let line = new THREE.Line(geometry, material)
+      //scene.add(line)
+      return line
+    }
+
+    // PLayer updating
+
+    function updateCollision(axis) {
+      for (let box of boxes) {
+        let a = {x: player.x, y: player.y, z: player.z, ...player.hitbox}
+        let b = {...box.position, xs: box.geometry.parameters.width, ys: box.geometry.parameters.height, zs: box.geometry.parameters.depth}
+        
+        // AABB
+
+        let aMinX = a.x - a.xs / 2
+        let aMaxX = a.x + a.xs / 2
+        let aMinY = a.y - a.ys / 2
+        let aMaxY = a.y + a.ys / 2
+        let aMinZ = a.z - a.zs / 2
+        let aMaxZ = a.z + a.zs / 2
+        let bMinX = b.x - b.xs / 2
+        let bMaxX = b.x + b.xs / 2
+        let bMinY = b.y - b.ys / 2
+        let bMaxY = b.y + b.ys / 2
+        let bMinZ = b.z - b.zs / 2
+        let bMaxZ = b.z + b.zs / 2
+
+        let collision = aMinX <= bMaxX &&
+        aMaxX >= bMinX &&
+        aMinY <= bMaxY  &&
+        aMaxY >= bMinY &&
+        aMinZ <= bMaxZ &&
+        aMaxZ >= bMinZ
+
+        let epsilon = 0.001
+        if (collision) {
+          if (axis == "x") {
+            if (bMaxX - aMinX < aMaxX - bMinX) {
+              player.x += bMaxX - aMinX + epsilon
+            } else {
+              player.x += bMinX - aMaxX - epsilon
+            }
+            player.velX = 0
+          } else if (axis == "y") {
+            if (bMaxY - aMinY < aMaxY - bMinY) {
+              player.onGround = player.onGround || true
+              player.y += bMaxY - aMinY + epsilon
+            } else {
+              player.y += bMinY - aMaxY - epsilon
+            }
+            player.velY = 0
+          } else if (axis == "z") {
+            if (bMaxZ - aMinZ < aMaxZ - bMinZ) {
+              player.z += bMaxZ - aMinZ + epsilon
+            } else {
+              player.z += bMinZ - aMaxZ - epsilon
+            }
+            player.velZ = 0
+          }
+        }
+      }
+    }
+
+    function updatePlayer() {
+      let movement = {x:0,z:0}
+      if (keys["w"]) {
+        movement.x -= Math.sin(player.yaw)
+        movement.z -= Math.cos(player.yaw)
+      }
+      if (keys["s"]) {
+        movement.x += Math.sin(player.yaw)
+        movement.z += Math.cos(player.yaw)
+      }
+      if (keys["a"]) {
+        movement.x -= Math.cos(player.yaw)
+        movement.z += Math.sin(player.yaw)
+      }
+      if (keys["d"]) {
+        movement.x += Math.cos(player.yaw)
+        movement.z -= Math.sin(player.yaw)
+      }
+      let movementMagnitude = Math.sqrt(movement.x**2 + movement.z**2)
+      if (movementMagnitude) {
+        player.velX += movement.x / movementMagnitude * player.speed
+        player.velZ += movement.z / movementMagnitude * player.speed
+      }
+
+      if (keys[" "] && player.onGround) {
+        player.velY += player.jumpPower
+      }
+      if (keys["q"]) {
+        player.velY += 0.1
+      }
+      if (keys["e"]) {
+        player.velY =0
+      }
+
+      player.onGround = false
+
+      player.x += player.velX
+      updateCollision("x")
+      player.y += player.velY
+      updateCollision("y")
+      player.z += player.velZ
+      updateCollision("z")
+      
+      for (let box of boxes) if (box.userData.callback) box.userData.callback(box)
+
+      player.velY -= player.gravity
+      player.velX /= player.friction
+      player.velY /= player.frictionY
+      player.velZ /= player.friction
+      camera.position.x = player.x
+      camera.position.y = player.y + player.height
+      camera.position.z = player.z
+    }
+
+    // Animation
+    let targetFPS = 60
+    let lastRender = 0
+    function animate() {
+      if (Date.now() - lastRender < 1000/targetFPS) {
+        requestAnimationFrame(animate)
+        return
+      }
+      updatePlayer()
+      
+      linesGroup.position.x = Math.floor(player.x)
+      linesGroup.position.z = Math.floor(player.z)
+
+      renderer.render(scene, camera)
+      requestAnimationFrame(animate)
+    }
+    init()
+    animate()
+  </script>
+</body>
+
+</html>
