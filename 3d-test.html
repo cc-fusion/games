@@ -10,10 +10,28 @@
       height: 100%;
       overflow: hidden;
     }
+    .crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .crosshair-horizontal {
+      width: 20px;
+      height: 0;
+      border-bottom: 1px solid white;
+    }
+    .crosshair-vertical {
+      width: 0;
+      height: 20px;
+      border-right: 1px solid white;
+    }
   </style>
 </head>
 <body>
   <pre id="debug" style="position:fixed;color:#ffffff"></pre>
+  <div class="crosshair crosshair-horizontal"></div>
+  <div class="crosshair crosshair-vertical"></div>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
@@ -42,19 +60,25 @@
     scene.add(ambientLight)
     let hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.3)
     scene.add(hemisphereLight)
-    let directionalLight = new THREE.DirectionalLight(0xffffff, 1)
-    directionalLight.position.set(5, 10, 15)
+    function addDirLight(x,y,z, color, intensity) {
+      let directionalLight = new THREE.DirectionalLight(color, intensity)
+      directionalLight.position.set(x,y,z)
 
-    directionalLight.castShadow = true
-    directionalLight.shadow.mapSize.set(2048, 2048)
-    directionalLight.shadow.camera.near = 0.5
-    directionalLight.shadow.camera.far = 50
-    directionalLight.shadow.camera.left = -10
-    directionalLight.shadow.camera.right = 10
-    directionalLight.shadow.bias = -0.0005
+      directionalLight.castShadow = true
+      directionalLight.shadow.mapSize.set(2048, 2048)
+      directionalLight.shadow.camera.near = 0.5
+      directionalLight.shadow.camera.far = 50
+      directionalLight.shadow.camera.left = -10
+      directionalLight.shadow.camera.right = 10
+      directionalLight.shadow.bias = -0.0005
 
-    scene.add(directionalLight)
+      scene.add(directionalLight)
+    }
+    addDirLight(500,1000,1500,0xffffff, 1)
+    addDirLight(-1500,1000,-500,0xffffff, 0.1)
+    
     // Cube
+
     let boxes = []
     function addBox(x,y,z,xs=1,ys=1,zs=1, settings = {color:0xffffff}, mat = THREE.MeshStandardMaterial) {
       let geometry = new THREE.BoxGeometry(xs,ys,zs)
@@ -70,6 +94,23 @@
       return cube
     }
     addBox(0,0,0,100,1,100, {color:0x00ff00})
+    function addLine(x1, y1, z1, x2, y2, z2, color) {
+      let material = new THREE.LineBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.2
+      })
+
+      let geometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x1, y1, z1),
+        new THREE.Vector3(x2, y2, z2),
+      ])
+      let line = new THREE.Line(geometry, material)
+      scene.add(line)
+      return line
+    }
+    for (let i = -50; i < 50; i++) addLine(i+0.5,0.51,-50,i+0.5,0.51,50,0xffff00)
+    for (let i = -50; i < 50; i++) addLine(-50,0.51,i+0.5,50,0.51,i+0.5,0xffff00)
     function addPlane(items) {
       for (let row of items) {
         for (let val of row) {
@@ -88,8 +129,6 @@
     addBox(8,9,-5,1,1,1, {color:0xffffff})
     addBox(4,10,-5,1,1,1, {color:0xffffff})
     addBox(0,11,-5,1,1,1, {color:0xffffff})
-    
-    
     
     function updateCollision() {
       debug.innerText = ""
@@ -174,9 +213,9 @@
       frictionY: 1.01,
       onGround: false,
       hitbox: {
-        xs: 0.5,
+        xs: 0.6666,
         ys: 2,
-        zs: 0.5
+        zs: 0.6666
       },
       gravity: 0.007,
     }
@@ -237,8 +276,8 @@
     })
     renderer.domElement.addEventListener("mousemove", (e) => {
       if (document.pointerLockElement === renderer.domElement) {
-        player.yaw -= e.movementX*0.01
-        player.pitch -= e.movementY*0.01
+        player.yaw -= e.movementX/window.innerWidth*Math.PI
+        player.pitch -= e.movementY/window.innerHeight*Math.PI
         camera.rotation.order = "YXZ" // this appears to work for some reason
         player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch))
         camera.rotation.x = player.pitch
