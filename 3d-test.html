@@ -1,26 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Three.js Cube</title>
+  <title>3d Game</title>
   <style>
-    html, body {
+    html,
+    body {
       margin: 0;
       height: 100%;
       overflow: hidden;
     }
+
     .crosshair {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
     }
+
     .crosshair-horizontal {
       width: 20px;
       height: 0;
       border-bottom: 1px solid white;
     }
+
     .crosshair-vertical {
       width: 0;
       height: 20px;
@@ -28,6 +33,7 @@
     }
   </style>
 </head>
+
 <body>
   <pre id="debug" style="position:fixed;color:#ffffff"></pre>
   <div class="crosshair crosshair-horizontal"></div>
@@ -39,6 +45,7 @@
     // Scene
     let scene = new THREE.Scene()
     scene.background = new THREE.Color(0x111111)
+    scene.fog = new THREE.Fog(0x111111, 20, 30)
 
     // Camera
     let camera = new THREE.PerspectiveCamera(
@@ -80,21 +87,30 @@
     // Cube
 
     let boxes = []
-    function addBox(x,y,z,xs=1,ys=1,zs=1, settings = {color:0xffffff}, mat = THREE.MeshStandardMaterial) {
+    function addBox(x,y,z,xs=1,ys=1,zs=1, settings = {color:0xffffff}, callback=false) {
       let geometry = new THREE.BoxGeometry(xs,ys,zs)
-      let material = new mat(settings)
+      let material = new THREE.MeshStandardMaterial(settings)
       let cube = new THREE.Mesh(geometry, material)
       cube.castShadow = true
       cube.receiveShadow = true
       cube.position.x = x
       cube.position.y = y
       cube.position.z = z
+      if (callback) cube.userData.callback = callback
       scene.add(cube)
       boxes.push(cube)
       return cube
     }
-    addBox(0,0,0,100,1,100, {color:0x00ff00})
+    addBox(0,0,0,100,1,100, {color:0x00ff00}, (box)=>{
+      box.position.x = player.x
+      box.position.z = player.z
+    })
     function addLine(x1, y1, z1, x2, y2, z2, color) {
+      let line = makeLine(x1, y1, z1, x2, y2, z2, color)
+      scene.add(line)
+      return line
+    }
+    function makeLine(x1, y1, z1, x2, y2, z2, color) {
       let material = new THREE.LineBasicMaterial({
         color: color,
         transparent: true,
@@ -106,11 +122,13 @@
         new THREE.Vector3(x2, y2, z2),
       ])
       let line = new THREE.Line(geometry, material)
-      scene.add(line)
+      //scene.add(line)
       return line
     }
-    for (let i = -50; i < 50; i++) addLine(i+0.5,0.51,-50,i+0.5,0.51,50,0xffff00)
-    for (let i = -50; i < 50; i++) addLine(-50,0.51,i+0.5,50,0.51,i+0.5,0xffff00)
+    let linesGroup = new THREE.Group()
+    for (let i = -50; i < 50; i++) linesGroup.add(makeLine(i+0.5,0.51,-50,i+0.5,0.51,50,0xffff00))
+    for (let i = -50; i < 50; i++) linesGroup.add(makeLine(-50,0.51,i+0.5,50,0.51,i+0.5,0xffff00))
+    scene.add(linesGroup)
     function addPlane(items) {
       for (let row of items) {
         for (let val of row) {
@@ -118,19 +136,42 @@
         }
       }
     }
-    addBox(0,1,-5,1,1,1, {color:0xffffff})
-    addBox(0,2,-9,1,1,1, {color:0xffffff})
-    addBox(0,3,-13,1,1,1, {color:0xffffff})
-    addBox(4,4,-13,1,1,1, {color:0xffffff})
-    addBox(8,5,-13,1,1,1, {color:0xffffff})
-    addBox(12,6,-13,1,1,1, {color:0xffffff})
-    addBox(12,7,-9,1,1,1, {color:0xffffff})
-    addBox(12,8,-5,1,1,1, {color:0xffffff})
-    addBox(8,9,-5,1,1,1, {color:0xffffff})
-    addBox(4,10,-5,1,1,1, {color:0xffffff})
-    addBox(0,11,-5,1,1,1, {color:0xffffff})
+    function generateParkour() {
+      let size = 5
+      let stack = 100
+      let stepHeight = 1
+      let stepLength = 2
+      let x = 0
+      let y = 0
+      let z = -8
+      for (let j = 0; j < stack; j++) {
+        for (let i = 0; i < size; i++) {
+          z -= stepLength
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+        for (let i = 0; i < size; i++) {
+          x += stepLength
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+        for (let i = 0; i < size; i++) {
+          z += stepLength
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+        for (let i = 0; i < size; i++) {
+          x -= stepLength
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+      }
+    }
     
-    function updateCollision() {
+    generateParkour()
+
+
+    function updateCollision(axis) {
       debug.innerText = ""
       player.onGround = false
       for (let box of boxes) {
@@ -151,45 +192,18 @@
         let bMaxY = b.y + b.ys / 2
         let bMinZ = b.z - b.zs / 2
         let bMaxZ = b.z + b.zs / 2
-      
-        let collision = aMinX <= bMaxX &&
-        aMaxX >= bMinX &&
-        aMinY <= bMaxY &&
-        aMaxY >= bMinY &&
-        aMinZ <= bMaxZ &&
-        aMaxZ >= bMinZ
+        let epsilon = 0
+        let collision = aMinX <= bMaxX + epsilon &&
+        aMaxX + epsilon >= bMinX &&
+        aMinY <= bMaxY+ epsilon  &&
+        aMaxY+ epsilon  >= bMinY &&
+        aMinZ <= bMaxZ + epsilon &&
+        aMaxZ + epsilon >= bMinZ
 
         if (collision) {
-          let distances = [
-            [bMaxX - aMinX, {x: 1,y: 0,z: 0, type: "x"}], // right
-            [aMaxX - bMinX, {x:-1,y: 0,z: 0, type: "x"}], // left
-            [bMaxY - aMinY, {x: 0,y: 1,z: 0, type: "y"}], // top
-            [aMaxY - bMinY, {x: 0,y:-1,z: 0, type: "y"}], // bottom
-            [bMaxZ - aMinZ, {x: 0,y: 0,z: 1, type: "z"}], // front
-            [aMaxZ - bMinZ, {x: 0,y: 0,z:-1, type: "z"}]  // back
-          ]
-          let leastDistance = 1/0
-          let optimalMovement
-          for (let d of distances) {
-            if (d[0] < leastDistance) {
-              leastDistance = d[0]
-              optimalMovement = d[1]
-            }
-          }
-          if (optimalMovement.type == "x") {
-            player.x -= player.velX
-            player.velX = 0
-          }
-          if (optimalMovement.type == "y") {
-            player.y -= player.velY
-            player.velY = 0
-          }
-          if (optimalMovement.type == "z") {
-            player.z -= player.velZ
-            player.velZ = 0
-          }
-          player.onGround = player.onGround || (optimalMovement.y == 1)
+          // change on each axis right after movement
         }
+        if (box.userData.callback) box.userData.callback(box)
       }
     }
 
@@ -219,7 +233,6 @@
       },
       gravity: 0.007,
     }
-
     function updatePlayer() {
       if (keys["w"]) {
         player.velX -= player.speed * Math.sin(player.yaw)
@@ -240,12 +253,22 @@
       if (keys[" "] && player.onGround) {
         player.velY += player.jumpPower
       }
+      if (keys["q"]) {
+        player.velY += 0.1
+      }
+      if (keys["e"]) {
+        player.velY =0
+      }
       
-      player.x += player.velX
-      player.y += player.velY
-      player.z += player.velZ
 
-      updateCollision()
+      player.x += player.velX
+      updateCollision("x")
+      player.y += player.velY
+      updateCollision("y")
+      player.z += player.velZ
+      updateCollision("z")
+
+      
 
       player.velY -= player.gravity
       player.velX /= player.friction
@@ -294,6 +317,10 @@
     let lastRender = 0
     function animate() {
       updatePlayer()
+      
+      linesGroup.position.x = Math.floor(player.x)
+      linesGroup.position.z = Math.floor(player.z)
+      
       if (Date.now() - lastRender < 1000/targetFPS) {
         requestAnimationFrame(animate)
         return
@@ -304,4 +331,5 @@
     animate()
   </script>
 </body>
+
 </html>
