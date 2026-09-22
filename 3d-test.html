@@ -172,7 +172,6 @@
 
 
     function updateCollision(axis) {
-      debug.innerText = ""
       player.onGround = false
       for (let box of boxes) {
         let a = {x: player.x, y: player.y, z: player.z, ...player.hitbox}
@@ -193,17 +192,22 @@
         let bMinZ = b.z - b.zs / 2
         let bMaxZ = b.z + b.zs / 2
         let epsilon = 0
-        let collision = aMinX <= bMaxX + epsilon &&
-        aMaxX + epsilon >= bMinX &&
-        aMinY <= bMaxY+ epsilon  &&
-        aMaxY+ epsilon  >= bMinY &&
-        aMinZ <= bMaxZ + epsilon &&
-        aMaxZ + epsilon >= bMinZ
+        let collision = aMinX <= bMaxX &&
+        aMaxX >= bMinX &&
+        aMinY <= bMaxY  &&
+        aMaxY >= bMinY &&
+        aMinZ <= bMaxZ &&
+        aMaxZ >= bMinZ
 
         if (collision) {
-          // change on each axis right after movement
+          if (axis == "x") {
+
+          } else if (axis == "y") {
+            if 
+          } else if (axis == "z") {
+
+          }
         }
-        if (box.userData.callback) box.userData.callback(box)
       }
     }
 
@@ -268,7 +272,7 @@
       player.z += player.velZ
       updateCollision("z")
 
-      
+      for (let box in boxes) if (box.userData.callback) box.userData.callback(box)
 
       player.velY -= player.gravity
       player.velX /= player.friction
