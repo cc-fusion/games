@@ -122,9 +122,9 @@
         for (let j = 0; j < barrierWidth; j++) {
           for (let k = 0; k < barrierHeight; k++) {
             if (type) {
-              addBox(x+j,1+k,z)
+              movableBoxes.push(addBox(x+j,1+k,z))
             } else {
-              addBox(x,1+k,z+j)
+              movableBoxes.push(addBox(x,1+k,z+j))
             }
           }
         }
@@ -177,6 +177,7 @@
 
     // Object creation
     let boxes = []
+    let movableBoxes = []
     function addBox(x,y,z,xs=1,ys=1,zs=1, settings = {color:0xffffff}, callback=false) {
       let geometry = new THREE.BoxGeometry(xs,ys,zs)
       let material = new THREE.MeshStandardMaterial(settings)
@@ -210,6 +211,16 @@
       let line = new THREE.Line(geometry, material)
       //scene.add(line)
       return line
+    }
+    function deleteBox(box) {
+      for (let i = 0; i < boxes.length; i++) {
+        if (box.uuid == boxes[i].uuid) boxes.splice(i,1)
+      }
+      for (let i = 0; i < movableBoxes.length; i++) {
+        if (box.uuid == movableBoxes[i].uuid) movableBoxes.splice(i,1)
+      }
+      scene.remove(box)
+      return true
     }
 
     // PLayer updating
@@ -333,6 +344,14 @@
         return
       }
       updatePlayer()
+
+      let raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(new THREE.Vector2(0,0), camera)
+      let intersects = raycaster.intersectObjects(movableBoxes, true)
+      if (intersects.length > 0) {
+        let object = intersects[0].object
+        if (object) deleteBox(object)
+      }
       
       linesGroup.position.x = Math.floor(player.x)
       linesGroup.position.z = Math.floor(player.z)
