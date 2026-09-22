@@ -197,8 +197,8 @@
         aMaxY >= bMinY &&
         aMinZ <= bMaxZ &&
         aMaxZ >= bMinZ
-        
-        let epsilon = 0.01
+
+        let epsilon = 0.001
         if (collision) {
           if (axis == "x") {
             if (bMaxX - aMinX < aMaxX - bMinX) {
@@ -240,16 +240,16 @@
       velX: 0,
       velY: 0,
       velZ: 0,
-      height: 0.5,
+      height: 1.62/2,
       yaw: 0,
       pitch: 0,
       friction: 1.2,
       frictionY: 1.01,
       onGround: false,
       hitbox: {
-        xs: 0.6666,
-        ys: 2,
-        zs: 0.6666
+        xs: 0.6,
+        ys: 1.8,
+        zs: 0.6
       },
       gravity: 0.007,
     }
