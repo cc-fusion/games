@@ -339,6 +339,25 @@
       scene.add(mesh)
       setTimeout(()=>{scene.remove(mesh)},100)
     }
+    function destroyParticleEffect(position) {
+      let count = 100
+      let positions = new Float32Array(count * 3)
+      for (let i = 0; i < count; i++) {
+        positions.set([
+          position.x + (Math.random()-0.5),
+          position.y + (Math.random()-0.5),
+          position.z + (Math.random()-0.5)
+        ])
+      }
+      let geometry = new THREE.BufferGeometry()
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
+      let material = new THREE.PointsMaterial({
+        size: 0.05, color: 0xffffff, transparent: true, opacity: 0.8, alphaTest: 0.01, depthWrite: false,
+        blending: THREE.AdditiveBlending
+      })
+      let particles = new THREE.Points(geometry, material)
+      scene.add(particles)
+    }
     function shoot() {
       let raycaster = new THREE.Raycaster()
       raycaster.setFromCamera(new THREE.Vector2(0,0), camera)
@@ -346,10 +365,19 @@
       if (intersects.length > 0) {
         let object = intersects[0].object
         if (object) deleteBox(object)
-        laserEffect(intersects[0].point)
+        let point = intersects[0].point
+        laserEffect(point)
+        destroyParticleEffect(new THREE.Vector3(Math.round(point.x), Math.round(point.y), Math.round(point.z)))
       } else {
         console.log(raycaster)
         laserEffect(raycaster.ray.direction.multiplyScalar(1000))
+      }
+    }
+
+    let particles = []
+    function updateParticles() {
+      for (let particle of particles) {
+
       }
     }
 
@@ -362,6 +390,7 @@
         return
       }
       updatePlayer()
+      updateParticles()
       
       linesGroup.position.x = Math.floor(player.x)
       linesGroup.position.z = Math.floor(player.z)
