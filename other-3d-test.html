@@ -332,13 +332,8 @@
     }
 
     function laserEffect(point) {
-      let curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(player.x, player.y + player.height - 0.1, player.z),
-        point
-      ])
-      let points = curve.getPoints(1)
-      let geometry = new THREE.BufferGeometry().setFromPoints(points)
-      let tube = new THREE.TubeGeometry(curve, 64, 0.05, 3, false)
+      let curve = new THREE.LineCurve3(new THREE.Vector3(player.x, player.y + player.height - 0.1, player.z), point)
+      let tube = new THREE.TubeGeometry(curve, 1, 0.05, 3, false)
       let material = new THREE.MeshBasicMaterial({ color: 0xff0000 })
       let mesh = new THREE.Mesh(tube, material)
       scene.add(mesh)
@@ -353,7 +348,8 @@
         if (object) deleteBox(object)
         laserEffect(intersects[0].point)
       } else {
-        laserEffect(/* NEED TO PUT SOMETHING HERE*/)
+        console.log(raycaster)
+        laserEffect(raycaster.ray.direction.multiplyScalar(1000))
       }
     }
 
