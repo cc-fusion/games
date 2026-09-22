@@ -48,44 +48,151 @@
     scene.fog = new THREE.Fog(0x111111, 20, 30)
 
     // Camera
-    let camera = new THREE.PerspectiveCamera(
-      75, // fov
-      window.innerWidth / window.innerHeight,
-      0.1, // near clipping
-      1000 // far clipping
-    )
+    let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000)
 
     // Renderer
     let renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(renderer.domElement)
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.VSMShadowMap; // Basic, PCF, PCFSoft, VSM
-    
-    // Lighting
-    let ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
-    scene.add(ambientLight)
-    let hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.3)
-    scene.add(hemisphereLight)
-    function addDirLight(x,y,z, color, intensity) {
-      let directionalLight = new THREE.DirectionalLight(color, intensity)
-      directionalLight.position.set(x,y,z)
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.VSMShadowMap // Basic, PCF, PCFSoft, VSM
 
-      directionalLight.castShadow = true
-      directionalLight.shadow.mapSize.set(2048, 2048)
-      directionalLight.shadow.camera.near = 0.5
-      directionalLight.shadow.camera.far = 50
-      directionalLight.shadow.camera.left = -10
-      directionalLight.shadow.camera.right = 10
-      directionalLight.shadow.bias = -0.0005
+    // Player
 
-      scene.add(directionalLight)
+    let player = {
+      x: 0, y: 10, z: 0,
+      velX: 0, velY: 0, velZ: 0,
+      rotationX: 0, rotationY: 0, rotationZ: 0,
+      yaw: 0, pitch: 0,
+      speed: 0.015,
+      jumpPower: 0.175,
+      height: 1.62/2,
+      friction: 1.2,
+      frictionY: 1.01,
+      onGround: false,
+      hitbox: {xs: 0.6, ys: 1.8, zs: 0.6},
+      gravity: 0.007,
     }
-    addDirLight(500,1000,1500,0xffffff, 1)
-    addDirLight(-1500,1000,-500,0xffffff, 0.1)
     
-    // Cube
+    // initialization
+    function initLighting() {
+      let ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
+      scene.add(ambientLight)
+      let hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.3)
+      scene.add(hemisphereLight)
+      function addDirLight(x,y,z, color, intensity) {
+        let directionalLight = new THREE.DirectionalLight(color, intensity)
+        directionalLight.position.set(x,y,z)
 
+        directionalLight.castShadow = true
+        directionalLight.shadow.mapSize.set(2048, 2048)
+        directionalLight.shadow.camera.near = 0.5
+        directionalLight.shadow.camera.far = 50
+        directionalLight.shadow.camera.left = -10
+        directionalLight.shadow.camera.right = 10
+        directionalLight.shadow.bias = -0.0005
+
+        scene.add(directionalLight)
+      }
+      addDirLight(500,1000,1500,0xffffff, 1)
+      addDirLight(-1500,1000,-500,0xffffff, 0.1)
+    }
+
+    let linesGroup = new THREE.Group()
+    function initScene() {
+      // floor
+      addBox(0,0,0,100,1,100, {color:0x00ff00}, (box)=>{
+        box.position.x = player.x
+        box.position.z = player.z
+      })
+      for (let i = -50; i < 50; i++) linesGroup.add(makeLine(i+0.5,0.51,-50,i+0.5,0.51,50,0xffff00))
+      for (let i = -50; i < 50; i++) linesGroup.add(makeLine(-50,0.51,i+0.5,50,0.51,i+0.5,0xffff00))
+      scene.add(linesGroup)
+
+      // Generate staircase
+      function getRandomLambda(min, max) {
+        return () => Math.floor(Math.random()*(max - min)+min)
+      }
+      let sizeMin = 1
+      let sizeMax = 10
+      let getSize = getRandomLambda(sizeMax, sizeMin)
+      let stack = 100
+      let stepHeight = 1
+      let stepLengthMin = 2
+      let stepLengthMax = 4+1
+      let getStepLength = getRandomLambda(stepLengthMin, stepLengthMax)
+      let x = 0
+      let y = 0
+      let z = -4
+      for (let j = 0; j < stack; j++) {
+        for (let i = 0; i < getSize(); i++) {
+          z -= getStepLength()
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+        for (let i = 0; i < getSize(); i++) {
+          x += getStepLength()
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+        for (let i = 0; i < getSize(); i++) {
+          z += getStepLength()
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+        for (let i = 0; i < getSize(); i++) {
+          x -= getStepLength()
+          y += stepHeight
+          addBox(x,y,z,1,1,1, {color:0xffffff})
+        }
+      }
+    }
+
+    let keys = {}
+    let mouse = {down: false}
+    function initListeners() {
+      addEventListener("keydown", (e) => {
+        keys[e.key.toLowerCase()] = true
+      })
+      addEventListener("keyup", (e) => {
+        keys[e.key.toLowerCase()] = false
+      })
+      renderer.domElement.addEventListener("click", (e) => {
+        renderer.domElement.requestPointerLock()
+      })
+      renderer.domElement.addEventListener("mousedown", (e) => {
+        mouse.down = true
+      })
+      renderer.domElement.addEventListener("mousemove", (e) => {
+        if (document.pointerLockElement === renderer.domElement) {
+          player.yaw -= e.movementX/window.innerWidth*Math.PI
+          player.pitch -= e.movementY/window.innerHeight*Math.PI
+          camera.rotation.order = "YXZ" // this appears to work for some reason
+          player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch))
+          camera.rotation.x = player.pitch
+          camera.rotation.y = player.yaw
+        }
+      })
+      
+      renderer.domElement.addEventListener("mouseup", (e) => {
+        mouse.down = false
+      })
+      window.addEventListener("resize", (e) => {
+        // https://discourse.threejs.org/t/how-can-i-resize-my-scene-to-be-100-of-the-windows-width-when-its-browser-resized-to-a-smaller-size/14135/3
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( window.innerWidth, window.innerHeight );
+      })
+    }
+
+    function init() {
+      initLighting()
+      initListeners()
+      initScene()
+    }
+
+    // Object creation
     let boxes = []
     function addBox(x,y,z,xs=1,ys=1,zs=1, settings = {color:0xffffff}, callback=false) {
       let geometry = new THREE.BoxGeometry(xs,ys,zs)
@@ -101,10 +208,6 @@
       boxes.push(cube)
       return cube
     }
-    addBox(0,0,0,100,1,100, {color:0x00ff00}, (box)=>{
-      box.position.x = player.x
-      box.position.z = player.z
-    })
     function addLine(x1, y1, z1, x2, y2, z2, color) {
       let line = makeLine(x1, y1, z1, x2, y2, z2, color)
       scene.add(line)
@@ -125,51 +228,8 @@
       //scene.add(line)
       return line
     }
-    let linesGroup = new THREE.Group()
-    for (let i = -50; i < 50; i++) linesGroup.add(makeLine(i+0.5,0.51,-50,i+0.5,0.51,50,0xffff00))
-    for (let i = -50; i < 50; i++) linesGroup.add(makeLine(-50,0.51,i+0.5,50,0.51,i+0.5,0xffff00))
-    scene.add(linesGroup)
-    function addPlane(items) {
-      for (let row of items) {
-        for (let val of row) {
-          
-        }
-      }
-    }
-    function generateParkour() {
-      let size = 5
-      let stack = 100
-      let stepHeight = 1
-      let stepLength = 2
-      let x = 0
-      let y = 0
-      let z = -8
-      for (let j = 0; j < stack; j++) {
-        for (let i = 0; i < size; i++) {
-          z -= stepLength
-          y += stepHeight
-          addBox(x,y,z,1,1,1, {color:0xffffff})
-        }
-        for (let i = 0; i < size; i++) {
-          x += stepLength
-          y += stepHeight
-          addBox(x,y,z,1,1,1, {color:0xffffff})
-        }
-        for (let i = 0; i < size; i++) {
-          z += stepLength
-          y += stepHeight
-          addBox(x,y,z,1,1,1, {color:0xffffff})
-        }
-        for (let i = 0; i < size; i++) {
-          x -= stepLength
-          y += stepHeight
-          addBox(x,y,z,1,1,1, {color:0xffffff})
-        }
-      }
-    }
-    
-    generateParkour()
 
+    // PLayer updating
 
     function updateCollision(axis) {
       for (let box of boxes) {
@@ -227,32 +287,6 @@
       }
     }
 
-    // Player
-    let player = {
-      x: 0,
-      y: 10,
-      z: 0,
-      rotationX: 0,
-      rotationY: 0,
-      rotationZ: 0,
-      speed: 0.015,
-      jumpPower: 0.175,
-      velX: 0,
-      velY: 0,
-      velZ: 0,
-      height: 1.62/2,
-      yaw: 0,
-      pitch: 0,
-      friction: 1.2,
-      frictionY: 1.01,
-      onGround: false,
-      hitbox: {
-        xs: 0.6,
-        ys: 1.8,
-        zs: 0.6
-      },
-      gravity: 0.007,
-    }
     function updatePlayer() {
       if (keys["w"]) {
         player.velX -= player.speed * Math.sin(player.yaw)
@@ -300,55 +334,23 @@
       camera.position.z = player.z
     }
 
-    // Listeners
-
-    let keys = {}
-    let mouse = {
-      down: false,
-    }
-    addEventListener("keydown", (e) => {
-      keys[e.key.toLowerCase()] = true
-    })
-    addEventListener("keyup", (e) => {
-      keys[e.key.toLowerCase()] = false
-    })
-    renderer.domElement.addEventListener("click", (e) => {
-      renderer.domElement.requestPointerLock()
-    })
-    renderer.domElement.addEventListener("mousedown", (e) => {
-      mouse.down = true
-    })
-    renderer.domElement.addEventListener("mousemove", (e) => {
-      if (document.pointerLockElement === renderer.domElement) {
-        player.yaw -= e.movementX/window.innerWidth*Math.PI
-        player.pitch -= e.movementY/window.innerHeight*Math.PI
-        camera.rotation.order = "YXZ" // this appears to work for some reason
-        player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch))
-        camera.rotation.x = player.pitch
-        camera.rotation.y = player.yaw
-      }
-    })
-    
-    renderer.domElement.addEventListener("mouseup", (e) => {
-      mouse.down = false
-    })
-
     // Animation
     let targetFPS = 60
     let lastRender = 0
     function animate() {
-      updatePlayer()
-      
-      linesGroup.position.x = Math.floor(player.x)
-      linesGroup.position.z = Math.floor(player.z)
-      
       if (Date.now() - lastRender < 1000/targetFPS) {
         requestAnimationFrame(animate)
         return
       }
+      updatePlayer()
+      
+      linesGroup.position.x = Math.floor(player.x)
+      linesGroup.position.z = Math.floor(player.z)
+
       renderer.render(scene, camera)
       requestAnimationFrame(animate)
     }
+    init()
     animate()
   </script>
 </body>
