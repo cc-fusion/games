@@ -172,7 +172,6 @@
 
 
     function updateCollision(axis) {
-      player.onGround = false
       for (let box of boxes) {
         let a = {x: player.x, y: player.y, z: player.z, ...player.hitbox}
         let b = {...box.position, xs: box.geometry.parameters.width, ys: box.geometry.parameters.height, zs: box.geometry.parameters.depth}
@@ -191,21 +190,38 @@
         let bMaxY = b.y + b.ys / 2
         let bMinZ = b.z - b.zs / 2
         let bMaxZ = b.z + b.zs / 2
-        let epsilon = 0
+
         let collision = aMinX <= bMaxX &&
         aMaxX >= bMinX &&
         aMinY <= bMaxY  &&
         aMaxY >= bMinY &&
         aMinZ <= bMaxZ &&
         aMaxZ >= bMinZ
-
+        
+        let epsilon = 0.01
         if (collision) {
           if (axis == "x") {
-
+            if (bMaxX - aMinX < aMaxX - bMinX) {
+              player.x += bMaxX - aMinX + epsilon
+            } else {
+              player.x += bMinX - aMaxX - epsilon
+            }
+            player.velX = 0
           } else if (axis == "y") {
-            if 
+            if (bMaxY - aMinY < aMaxY - bMinY) {
+              player.onGround = player.onGround || true
+              player.y += bMaxY - aMinY + epsilon
+            } else {
+              player.y += bMinY - aMaxY - epsilon
+            }
+            player.velY = 0
           } else if (axis == "z") {
-
+            if (bMaxZ - aMinZ < aMaxZ - bMinZ) {
+              player.z += bMaxZ - aMinZ + epsilon
+            } else {
+              player.z += bMinZ - aMaxZ - epsilon
+            }
+            player.velZ = 0
           }
         }
       }
@@ -263,7 +279,8 @@
       if (keys["e"]) {
         player.velY =0
       }
-      
+
+      player.onGround = false
 
       player.x += player.velX
       updateCollision("x")
@@ -271,8 +288,8 @@
       updateCollision("y")
       player.z += player.velZ
       updateCollision("z")
-
-      for (let box in boxes) if (box.userData.callback) box.userData.callback(box)
+      
+      for (let box of boxes) if (box.userData.callback) box.userData.callback(box)
 
       player.velY -= player.gravity
       player.velX /= player.friction
