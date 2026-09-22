@@ -136,6 +136,7 @@
     function initListeners() {
       addEventListener("keydown", (e) => {
         keys[e.key.toLowerCase()] = true
+        if (keys["q"]) shoot()
       })
       addEventListener("keyup", (e) => {
         keys[e.key.toLowerCase()] = false
@@ -145,6 +146,7 @@
       })
       renderer.domElement.addEventListener("mousedown", (e) => {
         mouse.down = true
+        shoot()
       })
       renderer.domElement.addEventListener("mousemove", (e) => {
         if (document.pointerLockElement === renderer.domElement) {
@@ -308,12 +310,6 @@
       if (keys[" "] && player.onGround) {
         player.velY += player.jumpPower
       }
-      if (keys["q"]) {
-        player.velY += 0.1
-      }
-      if (keys["e"]) {
-        player.velY =0
-      }
 
       player.onGround = false
 
@@ -335,6 +331,32 @@
       camera.position.z = player.z
     }
 
+    function laserEffect(point) {
+      let curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(player.x, player.y + player.height - 0.1, player.z),
+        point
+      ])
+      let points = curve.getPoints(1)
+      let geometry = new THREE.BufferGeometry().setFromPoints(points)
+      let tube = new THREE.TubeGeometry(curve, 64, 0.05, 3, false)
+      let material = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      let mesh = new THREE.Mesh(tube, material)
+      scene.add(mesh)
+      setTimeout(()=>{scene.remove(mesh)},100)
+    }
+    function shoot() {
+      let raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(new THREE.Vector2(0,0), camera)
+      let intersects = raycaster.intersectObjects(movableBoxes, true)
+      if (intersects.length > 0) {
+        let object = intersects[0].object
+        if (object) deleteBox(object)
+        laserEffect(intersects[0].point)
+      } else {
+        laserEffect(/* NEED TO PUT SOMETHING HERE*/)
+      }
+    }
+
     // Animation
     let targetFPS = 60
     let lastRender = 0
@@ -344,14 +366,6 @@
         return
       }
       updatePlayer()
-
-      let raycaster = new THREE.Raycaster()
-      raycaster.setFromCamera(new THREE.Vector2(0,0), camera)
-      let intersects = raycaster.intersectObjects(movableBoxes, true)
-      if (intersects.length > 0) {
-        let object = intersects[0].object
-        if (object) deleteBox(object)
-      }
       
       linesGroup.position.x = Math.floor(player.x)
       linesGroup.position.z = Math.floor(player.z)
