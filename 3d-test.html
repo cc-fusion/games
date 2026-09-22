@@ -288,22 +288,29 @@
     }
 
     function updatePlayer() {
+      let movement = {x:0,z:0}
       if (keys["w"]) {
-        player.velX -= player.speed * Math.sin(player.yaw)
-        player.velZ -= player.speed * Math.cos(player.yaw)
+        movement.x -= Math.sin(player.yaw)
+        movement.z -= Math.cos(player.yaw)
       }
       if (keys["s"]) {
-        player.velX += player.speed * Math.sin(player.yaw)
-        player.velZ += player.speed * Math.cos(player.yaw)
+        movement.x += Math.sin(player.yaw)
+        movement.z += Math.cos(player.yaw)
       }
       if (keys["a"]) {
-        player.velX -= player.speed * Math.cos(player.yaw)
-        player.velZ += player.speed * Math.sin(player.yaw)
+        movement.x -= Math.cos(player.yaw)
+        movement.z += Math.sin(player.yaw)
       }
       if (keys["d"]) {
-        player.velX += player.speed * Math.cos(player.yaw)
-        player.velZ -= player.speed * Math.sin(player.yaw)
+        movement.x += Math.cos(player.yaw)
+        movement.z -= Math.sin(player.yaw)
       }
+      let movementMagnitude = Math.sqrt(movement.x**2 + movement.z**2)
+      if (movementMagnitude) {
+        player.velX += movement.x / movementMagnitude * player.speed
+        player.velZ += movement.z / movementMagnitude * player.speed
+      }
+
       if (keys[" "] && player.onGround) {
         player.velY += player.jumpPower
       }
