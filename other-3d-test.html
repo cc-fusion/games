@@ -342,11 +342,17 @@
     function destroyParticleEffect(position) {
       let count = 100
       let positions = new Float32Array(count * 3)
+      let velocity = new Float32Array(count * 3)
       for (let i = 0; i < count; i++) {
         positions.set([
           position.x + (Math.random()-0.5),
           position.y + (Math.random()-0.5),
           position.z + (Math.random()-0.5)
+        ], i*3)
+        velocity.set([
+          (Math.random()-0.5),
+          (Math.random()-0.5),
+          (Math.random()-0.5)
         ], i*3)
       }
       let geometry = new THREE.BufferGeometry()
@@ -357,6 +363,10 @@
       })
       let particles = new THREE.Points(geometry, material)
       scene.add(particles)
+      particleList.push({
+        particles: particles,
+        velocity: velocity
+      })
     }
     function shoot() {
       let raycaster = new THREE.Raycaster()
@@ -367,21 +377,23 @@
         if (object) deleteBox(object)
         let point = intersects[0].point
         laserEffect(point)
-        destroyParticleEffect(new THREE.Vector3(
-          Math.round(point.x),
-          Math.round(point.y),
-          Math.round(point.z)
-        ))
+        destroyParticleEffect(object.position)
       } else {
         console.log(raycaster)
         laserEffect(raycaster.ray.direction.multiplyScalar(1000))
       }
     }
 
-    let particles = []
+    let particleList = []
+    function moveParticle(i, axis) {
+      for (let box of boxes) {
+        let minX = box.
+      }
+    }
     function updateParticles() {
-      for (let particle of particles) {
+      for (let particle of particleList) {
 
+        
       }
     }
 
