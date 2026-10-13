@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matter.js Minimal Boilerplate</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #111;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Matter.js Library via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+
+  <script>
+    // 1. Module aliases
+    const { Engine, Render, Runner, Bodies, Composite } = Matter;
+
+    // 2. Create an engine
+    const engine = Engine.create();
+    const idealBoxSize = 10
+    let substeps = 10
+    const boxSize = window.innerWidth/Math.floor(window.innerWidth/idealBoxSize)
+    // 3. Create a renderer
+    const render = Render.create({
+      element: document.body,
+      engine: engine,
+      options: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        wireframes: false
+      }
+    });
+
+    let bodies = []
+    function createBorders() {
+      let borderDepth = 1000
+      bodies.push(Bodies.rectangle(
+        window.innerWidth / 2, 
+        window.innerHeight + borderDepth / 2, 
+        window.innerWidth, 
+        borderDepth, 
+        { isStatic: true }
+      ))
+      bodies.push(Bodies.rectangle(
+        window.innerWidth / 2, 
+        -borderDepth / 2, 
+        window.innerWidth, 
+        borderDepth, 
+        { isStatic: true }
+      ))
+      bodies.push(Bodies.rectangle(
+        -borderDepth / 2,
+        window.innerHeight / 2,
+        borderDepth,
+        window.innerHeight,
+        { isStatic: true }
+      ))
+      bodies.push(Bodies.rectangle(
+        window.innerWidth + borderDepth / 2,
+        window.innerHeight / 2,
+        borderDepth,
+        window.innerHeight,
+        { isStatic: true }
+      ))
+    }
+    createBorders()
+    function createFloor() {
+      for (let i = 0; i < window.innerWidth/boxSize; i++) {
+        for (let j = 0; j < 3; j++) {
+          bodies.push(Bodies.rectangle(
+            i*boxSize + boxSize/2,
+            window.innerHeight - boxSize/2 - boxSize * j,
+            boxSize, boxSize, {
+              friction: 1
+            }
+          ))
+        }
+      }
+    }
+    let rect = Bodies.rectangle(
+      window.innerWidth/2, 100,
+      boxSize*10, boxSize*10,
+      {density: 0.00001}
+    )
+    Matter.Body.setAngularVelocity(rect, 10000)
+    bodies.push(rect)
+    createFloor()
+    // 5. Add all bodies to the world composite
+    Composite.add(engine.world, bodies);
+
+    // 6. Run both the renderer and the engine
+    Render.run(render);
+    let simulationHz = Math.floor(1000/60)*60
+    const runner = Runner.create({
+      isFixed: true,             // Forces a fixed physics step size
+      delta: 1000 / simulationHz
+    })
+    function animate() {
+      for (let i = 0; i < simulationHz/60; i++) {
+        Matter.Engine.update(engine, 1000/simulationHz)
+      }
+      requestAnimationFrame(animate)
+    }
+
+    requestAnimationFrame(animate)
+  </script>
+</body>
+</html>
