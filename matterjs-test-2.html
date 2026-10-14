@@ -24,6 +24,9 @@
 
     // 2. Create an engine
     const engine = Engine.create();
+    engine.positionIterations = 10
+    engine.velocityIterations = 10
+    
     const idealBoxSize = 20
     let substeps = 10
     const boxSize = window.innerWidth/Math.floor(window.innerWidth/idealBoxSize)
@@ -73,15 +76,22 @@
       ])
     }
     createBorders()
+    const rgbToHex = (r, g, b) => 
+  "#" + [r, g, b].map(x => {
+    const hex = x.toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }).join("");
     function createFloor() {
       for (let i = 0; i < window.innerWidth/boxSize; i++) {
         for (let j = 0; j < 10; j++) {
+          let density = Math.random()+0.1
           bodies.push(Bodies.rectangle(
             i*boxSize + boxSize/2,
             window.innerHeight - boxSize/2 - boxSize * j,
             boxSize, boxSize, {
               friction: 0,
-              density: 0.1,
+              density: density,
+              //render: {fillStyle: rgbToHex(Math.floor(255/2*density),Math.floor(255/2*density),Math.floor(255/2*density))}
             }
           ))
         }
@@ -100,8 +110,20 @@
         })
       }
     }
+    function move(x, y, forceX, forceY, radius) {
+      for (let body of bodies) {
+        let distanceX = (x - body.position.x)
+        let distanceY = (y - body.position.y)
+        let distance = Math.sqrt(distanceX ** 2 + distanceY ** 2)
+        if (distance > radius) continue
+        Matter.Body.setVelocity(body, {
+          x: body.velocity.x + forceX * distance/radius,
+          y: body.velocity.y + forceY * distance/radius,
+        })
+      }
+    }
+    
     createFloor()
-    explosion(window.innerWidth,window.innerHeight,100,100)
     // 5. Add all bodies to the world composite
     Composite.add(engine.world, bodies);
 
@@ -112,10 +134,19 @@
       isFixed: true,             // Forces a fixed physics step size
       delta: 1000 / simulationHz
     })
+    let mouse = {x:0,y:0,movementX:0,movementY:0}
+    addEventListener("mousemove", (e) => {
+      mouse.x = e.clientX
+      mouse.y = e.clientY
+      mouse.movementX = e.movementX
+      mouse.movementY = e.movementY
+      move(mouse.x,mouse.y,mouse.movementX,mouse.movementY,40)
+    })
     function animate() {
       for (let i = 0; i < simulationHz/60; i++) {
         Matter.Engine.update(engine, 1000/simulationHz)
       }
+      
       requestAnimationFrame(animate)
     }
 
