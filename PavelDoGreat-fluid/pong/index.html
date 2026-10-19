@@ -42,6 +42,7 @@
   <script>
     let fluidCanvas = document.getElementById("fluid-canvas")
     let canvas = document.getElementById("canvas-overlay")
+    let scoreElement = document.getElementById("score")
     canvas.width = 2000
     canvas.height = 2000
     let canvasHypot = Math.hypot(canvas.width, canvas.height)
@@ -103,8 +104,7 @@
           (this.direction == "right" && ball.pos.x > this.x - this.width)
         ) {
           ball.vel.x = Math.abs(ball.vel.x) * (this.direction == "left" ? 1.01 : -1.01)
-          ball.vel.y += this.y - this.prevY
-          ball.vel.y /= 1.01
+          ball.vel.y += (ball.pos.y - this.y) / this.height * 0.01
         }
       }
       render() {
@@ -134,7 +134,7 @@
       ball.pos.y = 0.5
       ball.vel.x = Math.random() < 0.5 ? 0.005 : -0.005
       ball.vel.y = (Math.random()-0.5) * 2 * 0.005
-
+      scoreElement.innerText = score[0] + " | " + score[1]
     }
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
