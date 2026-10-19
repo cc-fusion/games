@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fluid Simulation Boilerplate</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #06062C;
+    }
+
+    canvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100vmin;
+      height: 100vmin;
+    }
+    #score {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ffffff;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="fluid-canvas"></canvas>
+  <canvas id="canvas-overlay"></canvas>
+  <h1 id="score">0 | 0</h1>
+
+  <script src="https://cdn.jsdelivr.net/gh/cc-fusion/vibecoding@main/vibecoding/PavelDoGreat-fluid-API/api-v1.0.0.js"></script>
+  
+  <script>
+    let fluidCanvas = document.getElementById("fluid-canvas")
+    let canvas = document.getElementById("canvas-overlay")
+    canvas.width = 2000
+    canvas.height = 2000
+    let canvasHypot = Math.hypot(canvas.width, canvas.height)
+    let ctx = canvas.getContext("2d")
+
+    if (!FluidSimulation) {
+      alert("Failed to initalize FluidSimulation")
+      throw "Failed to initalize FluidSimulation"
+    }
+
+    let sim = FluidSimulation.create(fluidCanvas, {
+      SIM_RESOLUTION: 256,
+      DYE_RESOLUTION: 1024,
+      DENSITY_DISSIPATION: 1.0,
+      VELOCITY_DISSIPATION: 0.2,
+      PRESSURE: 0.2,
+      CURL: 30,
+      SPLAT_RADIUS: 0.1,
+      SPLAT_FORCE: 600,
+      SHADING: true,
+      COLORFUL: true,
+      BACK_COLOR: '#000000'
+    })
+    sim.start()
+
+    class Vector {
+      constructor(x,y) {
+        this.x = x
+        this.y = y
+      }
+      getRenderX() {return this.x*canvas.width}
+      getRenderY() {return this.y*canvas.height}
+      add(other) {this.x+=other.x;this.y+=other.y;return this}
+      subtract(other) {this.x-=other.x;this.y-=other.y;return this}
+      multiplyScalar(i) {this.x*=i;this.y*=i;return this}
+      get magnitude() {return Math.hypot(this.x, this.y)}
+      norm() {this.x==0&&this.y==0?this:this.multiplyScalar(1/this.magnitude);return this}
+      copy() {return new Vector(this.x, this.y)}
+    }
+    let ball = {
+      pos: new Vector(0.5,0.5),
+      vel: new Vector(0.005,0.001)
+    }
+    class Paddle {
+      constructor(x, y, direction, height = 0.12, width = 0.02) {
+        this.x = x
+        this.y = y
+        this.direction = direction
+        this.height = height
+        this.width = width
+        this.prevY = y
+      }
+      updateBall() {
+        let top = this.y + this.height/2
+        let bottom = this.y - this.height/2
+        if (ball.pos.y > top || ball.pos.y < bottom) return
+        if (
+          (this.direction == "left" && ball.pos.x < this.x + this.width) ||
+          (this.direction == "right" && ball.pos.x > this.x - this.width)
+        ) {
+          ball.vel.x = Math.abs(ball.vel.x) * (this.direction == "left" ? 1.01 : -1.01)
+          ball.vel.y += this.y - this.prevY
+          ball.vel.y /= 1.01
+        }
+      }
+      render() {
+        ctx.fillStyle = "#ffffff"
+        ctx.fillRect(
+          (this.x - this.width/2) * canvas.width,
+          (this.y - this.height/2) * canvas.height,
+          this.width * canvas.width,
+          this.height * canvas.height
+        )
+      }
+    }
+    let paddle1 = new Paddle(0.05, 0.5, "left")
+    let paddle2 = new Paddle(1-0.05, 0.5, "right")
+    let rect = canvas.getBoundingClientRect()
+    let score = [0,0]
+    addEventListener("mousemove", (e) => {
+      paddle1.y = (e.clientY - rect.top) / rect.height
+    })
+    function update() {
+      ball.pos.add(ball.vel)
+      paddle1.updateBall()
+      paddle2.updateBall()
+    }
+    function reset() {
+      ball.pos.x = 0.5
+      ball.pos.y = 0.5
+      ball.vel.x = Math.random() < 0.5 ? 0.005 : -0.005
+      ball.vel.y = (Math.random()-0.5) * 2 * 0.005
+
+    }
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.beginPath()
+      ctx.arc(ball.pos.getRenderX(), ball.pos.getRenderY(), 20, 0, 6.29)
+      ctx.fillStyle = "#ffffff"
+      ctx.fill()
+      paddle1.render()
+      paddle2.render()
+      paddle2.y = ball.pos.y
+      sim.splat(ball.pos.x, ball.pos.y, ball.vel.x * canvas.width, ball.vel.y * canvas.height)
+      if (ball.pos.y < 0) {
+        ball.pos.y = 0
+        ball.vel.y *= -1
+      }
+      if (ball.pos.y > 1) {
+        ball.pos.y = 1
+        ball.vel.y *= -1
+      }
+      if (ball.pos.x < 0) {
+        score[1]++
+        reset()
+      }
+      if (ball.pos.x > 1) {
+        score[0]++
+        reset()
+      }
+      paddle1.prevY = paddle1.y
+      paddle2.prevY = paddle2.y
+      ball.vel.x = Math.min(Math.max(ball.vel.x,-0.05),0.05)
+      ball.vel.y = Math.min(Math.max(ball.vel.y,-0.05),0.05)
+    }
+    reset()
+    
+    function animate() {
+      update()
+      render()
+      requestAnimationFrame(animate)
+    }
+    requestAnimationFrame(animate)
+  </script>
+</body>
+</html>
