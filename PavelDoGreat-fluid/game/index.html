@@ -32,7 +32,7 @@
   
   <script>
     let fluidCanvas = document.getElementById("fluid-canvas")
-    let canvas = document.getElementById("canvas")
+    let canvas = document.getElementById("canvas-overlay")
     canvas.width = 2000
     canvas.height = 2000
     let ctx = canvas.getContext("2d")
@@ -65,12 +65,19 @@
       subtract(other) {this.x-=other.x;this.y-=other.y;return this}
       multiplyScalar(i) {this.x*=i;this.y*=i;return this}
       get magnitude() {return Math.sqrt(this.x**2+this.y**2)}
-      norm() {this.multiplyScalar(1/this.magnitude);return this}
+      norm() {this.x==0&&this.y==0?this:this.multiplyScalar(1/this.magnitude);return this}
     }
     let player = {
-      pos: new Vector(0,0),
+      get x() {document.documentElement.innerText = "You used player.pos.x somewhere"},
+      get y() {document.documentElement.innerText = "You used player.pos.y somewhere"},
+      set x(a) {document.documentElement.innerText = "You used player.pos.x somewhere"},
+      set y(a) {document.documentElement.innerText = "You used player.pos.y somewhere"},
+      pos: new Vector(canvas.width/2,canvas.height/2),
       vel: new Vector(0,0),
-      speed: 0.1,
+      speed: 0.2,
+      friction: 1.01,
+      weight: 1,
+      wallBounciness: 1,
     }
     let keys = {}
     addEventListener("keydown", (e) => {
@@ -80,18 +87,45 @@
       keys[e.key.toLowerCase()] = false
     })
     function updateKeys() {
-      if (keys["arrowup"] || keys["w"]) player.vel.y -= player.speed
-      if (keys["arrowdown"] || keys["s"]) player.vel.y += player.speed
-      if (keys["arrowleft"] || keys["a"]) player.vel.x -= player.speed
-      if (keys["arrowright"] || keys["d"]) player.vel.x += player.speed
+      let newVel = new Vector(0,0)
+      if (keys["arrowup"] || keys["w"]) newVel.y -= 1
+      if (keys["arrowdown"] || keys["s"]) newVel.y += 1
+      if (keys["arrowleft"] || keys["a"]) newVel.x -= 1
+      if (keys["arrowright"] || keys["d"]) newVel.x += 1
+      player.vel.add(newVel.norm().multiplyScalar(player.speed))
     }
     function updatePlayer() {
       player.pos.add(player.vel)
-      player.vel.multiplyScalar(1/1.01)
+      player.vel.multiplyScalar(1/player.friction)
+      if (player.pos.x < 0) {
+        player.pos.x = 0
+        player.vel.x *= -player.wallBounciness
+      }
+      if (player.pos.x > canvas.width) {
+        player.pos.x = canvas.width
+        player.vel.x *= -player.wallBounciness
+      }
+      if (player.pos.y < 0) {
+        player.pos.y = 0
+        player.vel.y *= -player.wallBounciness
+      }
+      if (player.pos.y > canvas.height) {
+        player.pos.y = canvas.height
+        player.vel.y *= -player.wallBounciness
+      }
+
+    }
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.beginPath()
+      ctx.arc(player.pos.x, player.pos.y, 20, 0, 6.29)
+      ctx.fillStyle = "#ff0000"
+      ctx.fill()
     }
     function animate() {
       updateKeys()
       updatePlayer()
+      render()
       requestAnimationFrame(animate)
     }
     requestAnimationFrame(animate)
