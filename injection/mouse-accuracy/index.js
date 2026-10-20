@@ -138,6 +138,40 @@ document.addEventListener("mousemove", (e) => {
   updateCursor()
 })
 
+function mouseLoop() {
+  if ( aimAssist.score > window.AIMASSIST_CONFIG.assistThreshold.min && aimAssist.score < window.AIMASSIST_CONFIG.assistThreshold.max ) { 
+    let movementX = (aimAssist.target.x - mouse.x) * window.AIMASSIST_CONFIG.snapSpeed; 
+    let movementY = (aimAssist.target.y - mouse.y) * window.AIMASSIST_CONFIG.snapSpeed; 
+
+    // 1. Calculate the total current speed (magnitude of the movement vector) 
+    const currentSpeed = Math.hypot(movementX, movementY); 
+    const maxSpeed = window.AIMASSIST_CONFIG.maxSpeed; 
+    const minSpeed = window.AIMASSIST_CONFIG.minSpeed; // Configured minSpeed with a fallback
+
+    // 2. If the speed exceeds the cap or falls below the minimum, scale the vector proportionally 
+    if (currentSpeed > maxSpeed) { 
+        const scale = maxSpeed / currentSpeed; 
+        movementX *= scale; 
+        movementY *= scale; 
+    } else if (currentSpeed < minSpeed && currentSpeed > 0) { 
+        // Ensure currentSpeed > 0 to prevent division by zero when the mouse is exactly on target
+        const scale = minSpeed / currentSpeed; 
+        movementX *= scale; 
+        movementY *= scale; 
+    } 
+
+    // 3. Apply the capped movements to the mouse position 
+    mouse.x = clamp(mouse.x + movementX * sensitivity, 0, window.innerWidth - 1); 
+    mouse.y = clamp(mouse.y + movementY * sensitivity, 0, window.innerHeight - 1); 
+    mouse.movementX = movementX * sensitivity; 
+    mouse.movementY = movementY * sensitivity; 
+}
+
+  updateCursor()
+  requestAnimationFrame(mouseLoop)
+}
+requestAnimationFrame(mouseLoop)
+
 function dispatchMouseEvent(type, target, button = 0) {
   const event = new MouseEvent(type, {
     bubbles: true,
@@ -223,7 +257,7 @@ function loop(timestamp) {
     let score
     if (useAngle) {
       const angle = Math.atan2(dy, dx)
-      score = (Math.PI - Math.abs(angleDistance(mouseMovementAngle, angle))) / distance
+      score = (Math.PI - Math.abs(angleDistance(mouseMovementAngle, angle))) / distance * AIMASSIST_CONFIG.distanceWeight
     } else {
       score = 1 / distance
     }
@@ -264,8 +298,11 @@ function loop(timestamp) {
 requestAnimationFrame(loop)
 
 window.AIMASSIST_CONFIG = {
-  teleport_distance: 20,
+  teleport_distance: 30,
   autoclick: true,
-  assistThreshold: { min: 0, max: 1000000 },
-  snapSpeed: 0.1
+  assistThreshold: { min: 0.01, max: 1000000 },
+  snapSpeed: 0.1,
+  maxSpeed: 5,
+  minSpeed: 5,
+  distanceWeight: 0.0001,
 }
