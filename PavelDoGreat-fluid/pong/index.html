@@ -61,9 +61,9 @@
     let sim = FluidSimulation.create(fluidCanvas, {
       SIM_RESOLUTION: 512,
       DYE_RESOLUTION: 1024,
-      DENSITY_DISSIPATION: 1.0,
+      DENSITY_DISSIPATION: 0.5,
       VELOCITY_DISSIPATION: 0.2,
-      PRESSURE: 0.2,
+      PRESSURE: 0,
       CURL: 30,
       SPLAT_RADIUS: 0.1,
       SPLAT_FORCE: 600,
@@ -88,12 +88,15 @@
       copy() {return new Vector(this.x, this.y)}
     }
     function getNewColor(m) {
-      return [Math.random()*20 * m / 0.005,Math.random()*30,Math.random()*30]
+      return [Math.random()*30,Math.random()*30,Math.random()*30]
     }
     let ball = {
       pos: new Vector(0.5,0.5),
       vel: new Vector(0.005,0.001),
       color: getNewColor(Math.hypot(0.005, 0.001))
+    }
+    function multiplyColor(rgb, x) {
+      return [rgb[0] * x, rgb[1] * x, rgb[2] * x]
     }
     class Paddle {
       constructor(x, y, direction, height = 0.12, width = 0.02) {
@@ -112,7 +115,7 @@
           (this.direction == "left" && ball.pos.x < this.x + this.width) ||
           (this.direction == "right" && ball.pos.x > this.x - this.width)
         ) {
-          ball.vel.x = Math.abs(ball.vel.x) * (this.direction == "left" ? 1.01 : -1.01)
+          ball.vel.x = Math.abs(ball.vel.x) * (this.direction == "left" ? 1.1 : -1.1)
           ball.vel.y += (ball.pos.y - this.y) / this.height * 0.01
           ball.color = getNewColor(ball.vel.magnitude)
         }
@@ -144,7 +147,51 @@
       ball.pos.y = 0.5
       ball.vel.x = Math.random() < 0.5 ? 0.005 : -0.005
       ball.vel.y = (Math.random()-0.5) * 2 * 0.005
+      ball.color = getNewColor(ball.vel.magnitude)
       scoreElement.innerText = score[0] + " | " + score[1]
+    }
+    function timedInterval(callback, interval, times) {
+      let i = 0
+      let intervalID = setInterval(()=>{
+        if (i > times) {
+          clearInterval(intervalID)
+          return
+        }
+        callback(i)
+        i++
+      }, interval)
+      return intervalID
+    }
+    function predictAIBallPos(randomness = 0.1) {
+      let ballCopy = {
+        pos: new Vector(ball.pos.x, ball.pos.y),
+        vel: new Vector(ball.vel.x, ball.vel.y)
+      }
+      let speed = ball.vel.magnitude
+      while (ballCopy.pos.x > 0 && ballCopy.pos.x < 1) {
+        ballCopy.pos.x *= 1+(Math.random() - 0.5) * 2 * randomness
+        ballCopy.pos.y *= 1+(Math.random() - 0.5) * 2 * randomness
+
+        ballCopy.pos.add(ballCopy.vel)
+        if (ballCopy.pos.y < 0) {
+          ballCopy.pos.y = 0
+          ballCopy.vel.y *= -1+(Math.random() - 0.5) * 2 * randomness
+        }
+        if (ballCopy.pos.y > 1) {
+          ballCopy.pos.y = 1
+          ballCopy.vel.y *= -1+(Math.random() - 0.5) * 2 * randomness
+        }
+      }
+      return ballCopy.pos.add(ballCopy.vel.multiplyScalar(1+9*(Math.random()-0.5)*2)).y
+    }
+    function updateAIPaddle() {
+      let paddleSpeed = Math.abs(paddle2.y - ball.pos.y) * 0.1
+      let target = ball.pos.y - ball.vel.y
+      if (ball.vel.x < 0) {
+        return
+      }
+      let movement = (paddle2.y - (ball.pos.y + predictAIBallPos(0.1)) / 2) / 10
+      paddle2.y -= movement
     }
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -153,9 +200,10 @@
       ctx.fillStyle = "#ffffff"
       ctx.fill()
       paddle1.render()
+      updateAIPaddle()
       paddle2.render()
-      paddle2.y = ball.pos.y
-      sim.splat(ball.pos.x, ball.pos.y, ball.vel.x * canvas.width, ball.vel.y * canvas.height, [ball.color[0] * ball.vel.magnitude,ball.color[1] * ball.vel.magnitude,ball.color[2] * ball.vel.magnitude])
+      
+      sim.splat(ball.pos.x, ball.pos.y, ball.vel.x * canvas.width, ball.vel.y * canvas.height, multiplyColor(ball.color, ball.vel.magnitude))
       
       
       if (ball.pos.y < 0) {
@@ -166,11 +214,31 @@
         ball.pos.y = 1
         ball.vel.y *= -1
       }
+      let loseSplatDensity = 200
+      let loseSplatForce = 1000
       if (ball.pos.x < 0) {
+        let yPos = ball.pos.y
+        let velMag = ball.vel.magnitude
+        let color = [...ball.color]
+        timedInterval((i) => {
+          for (let height = -1; height < 1; height += 0.1) {
+          sim.splat(0.1*i/10, yPos + height/100, loseSplatForce, 0, multiplyColor(color, ball.vel.magnitude * loseSplatDensity))
+          }
+        }, 0, 10)
+
         score[1]++
         reset()
       }
       if (ball.pos.x > 1) {
+        let yPos = ball.pos.y
+        let velMag = ball.vel.magnitude
+        let color = [...ball.color]
+        timedInterval((i) => {
+          for (let height = -1; height < 1; height += 0.1) {
+          sim.splat(1-0.1*(1-i/10), yPos + height/100, -loseSplatForce, 0, multiplyColor(color, ball.vel.magnitude * loseSplatDensity))
+          }
+        }, 0, 10)
+        
         score[0]++
         reset()
       }
