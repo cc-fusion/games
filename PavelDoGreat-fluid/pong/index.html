@@ -61,7 +61,7 @@
     let sim = FluidSimulation.create(fluidCanvas, {
       SIM_RESOLUTION: 512,
       DYE_RESOLUTION: 1024,
-      DENSITY_DISSIPATION: 0.5,
+      DENSITY_DISSIPATION: 0.8,
       VELOCITY_DISSIPATION: 0.2,
       PRESSURE: 0,
       CURL: 30,
@@ -187,10 +187,9 @@
     function updateAIPaddle() {
       let paddleSpeed = Math.abs(paddle2.y - ball.pos.y) * 0.1
       let target = ball.pos.y - ball.vel.y
-      if (ball.vel.x < 0) {
-        return
-      }
-      let movement = (paddle2.y - (ball.pos.y + predictAIBallPos(0.1)) / 2) / 10
+      if (ball.vel.x < 0) return
+      if (ball.vel.x * 25 > ball.pos.x) return
+      let movement = (paddle2.y - (ball.pos.y + predictAIBallPos(0.01)) / 2) / 10
       paddle2.y -= movement
     }
     function render() {
