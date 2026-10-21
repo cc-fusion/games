@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fluid Simulation Boilerplate</title>
+  <title>Fluid Simulation Pong</title>
   <style>
     html,
     body {
@@ -241,10 +241,25 @@
         score[0]++
         reset()
       }
+      sim.splat(
+        paddle1.x, 
+        paddle1.y, 
+        Math.random()-0.5, 
+        canvas.height*(paddle1.y - paddle1.prevY), 
+        multiplyColor([0.1,0.1,0.1], 30*Math.abs(paddle1.y-paddle1.prevY))
+      )
+      sim.splat(
+        paddle2.x, 
+        paddle2.y, 
+        Math.random()-0.5, 
+        canvas.height*(paddle2.y - paddle2.prevY), 
+        multiplyColor([0.1,0.1,0.1], 30*Math.abs(paddle2.y-paddle2.prevY))
+      )
+      
       paddle1.prevY = paddle1.y
       paddle2.prevY = paddle2.y
-      ball.vel.x = Math.min(Math.max(ball.vel.x,-0.05),0.05)
-      ball.vel.y = Math.min(Math.max(ball.vel.y,-0.05),0.05)
+      ball.vel.x = Math.min(Math.max(ball.vel.x,-0.03),0.03)
+      ball.vel.y = Math.min(Math.max(ball.vel.y,-0.03),0.03)
     }
     reset()
     
