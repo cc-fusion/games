@@ -46,12 +46,12 @@
     let sim = FluidSimulation.create(fluidCanvas, {
       SIM_RESOLUTION: 128,
       DYE_RESOLUTION: 1024,
-      DENSITY_DISSIPATION: 1.0,
+      DENSITY_DISSIPATION: 0.5,
       VELOCITY_DISSIPATION: 0.2,
-      PRESSURE: 0.2,
-      CURL: 5,
-      SPLAT_RADIUS: 0.25,
-      SPLAT_FORCE: 6000,
+      PRESSURE: 0,
+      CURL: 20,
+      SPLAT_RADIUS: 0.03,
+      SPLAT_FORCE: 600,
       SHADING: true,
       COLORFUL: true,
       BACK_COLOR: '#000000'
@@ -82,7 +82,7 @@
       speed: 0.2, // in canvas units
       friction: 1.01,
       weight: 1,
-      wallBounciness: 1,
+      wallBounciness: 0.9
     }
     let keys = {}
     addEventListener("keydown", (e) => {
@@ -119,22 +119,50 @@
         player.vel.y *= -player.wallBounciness
       }
       let vel = player.vel.copy().multiplyScalar(canvasHypot)
-      sim.splat(player.pos.x, player.pos.y, vel.x, vel.y)
+      sim.splat(player.pos.x, player.pos.y, vel.x, vel.y, [0,0.1,0.2])
 
       let velocitySample = sim.sample("velocity", player.pos.x, player.pos.y)
+      let dyeSample = sim.sample("dye", player.pos.x, player.pos.y)
       velocitySample = new Vector(velocitySample[0], velocitySample[1])
-      player.vel.add(velocitySample.multiplyScalar(0.000001))
+      player.vel.add(velocitySample.multiplyScalar(0.000001* dyeSample[0]) )
+    }
+    class Enemy {
+      constructor(pos, color) {
+        this.color = color
+        this.pos = new Vector(pos.x, pos.y)
+      }
+      move() {
+
+      }
     }
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       ctx.beginPath()
       ctx.arc(player.pos.getRenderX(), player.pos.getRenderY(), 20, 0, 6.29)
-      ctx.fillStyle = "#ff0000"
+      ctx.fillStyle = `#00ffff`
       ctx.fill()
+      ctx.beginPath()
+      ctx.arc(player.pos.getRenderX(), player.pos.getRenderY(), 20, 0, 6.29)
+      ctx.lineWidth = 10
+      ctx.strokeStyle = "#000000"
+      ctx.stroke()
+      for (let enemy of enemies) {
+        ctx.beginPath()
+        ctx.arc(enemy.pos.getRenderX(), enemy.pos.getRenderY(), 20, 0, 6.29)
+        ctx.fillStyle = `rgb()`
+        throw "here"
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(enemy.pos.getRenderX(), enemy.pos.getRenderY(), 20, 0, 6.29)
+        ctx.lineWidth = 10
+        ctx.strokeStyle = "#000000"
+        ctx.stroke()
+      }
     }
     function animate() {
       updateKeys()
       updatePlayer()
+      for (let enemy of enemies) enemy.update()
       render()
       requestAnimationFrame(animate)
     }
