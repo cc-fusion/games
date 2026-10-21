@@ -82,14 +82,36 @@
       speed: 0.2, // in canvas units
       friction: 1.01,
       weight: 1,
-      wallBounciness: 0.9
+      wallBounciness: 0.9,
+      health: 10000,
+      color: [0,1,1],
+      shootColor: [0, 0.5, 1]
     }
+    player.startingHealth = player.health
     let keys = {}
     addEventListener("keydown", (e) => {
       keys[e.key.toLowerCase()] = true
     })
     addEventListener("keyup", (e) => {
       keys[e.key.toLowerCase()] = false
+    })
+    let mouse = {
+      movement: new Vector(0,0),
+      lastMovementTime: 0,
+    }
+    canvas.addEventListener("click", (e) => {
+      canvas.requestPointerLock() 
+    })
+    addEventListener("mousemove", (e) => {
+      mouse.movement.x = e.movementX
+      mouse.movement.y = e.movementY
+      mouse.lastMovementTime = Date.now()
+    })
+    addEventListener("mousedown", (e) => {
+      mouse.down = true
+    })
+    addEventListener("mouseup", (e) => {
+      mouse.down = false
     })
     function updateKeys() {
       let newVel = new Vector(0,0)
@@ -119,21 +141,85 @@
         player.vel.y *= -player.wallBounciness
       }
       let vel = player.vel.copy().multiplyScalar(canvasHypot)
-      sim.splat(player.pos.x, player.pos.y, vel.x, vel.y, [0,0.1,0.2])
-
+      // update from sample
       let velocitySample = sim.sample("velocity", player.pos.x, player.pos.y)
-      let dyeSample = sim.sample("dye", player.pos.x, player.pos.y)
       velocitySample = new Vector(velocitySample[0], velocitySample[1])
-      player.vel.add(velocitySample.multiplyScalar(0.000001* dyeSample[0]) )
+      let dyeSample = sim.sample("dye", player.pos.x, player.pos.y)
+      let affectedMagnitude = getAffectedMagnitude(player.color, dyeSample)
+      player.health -= affectedMagnitude * velocitySample.magnitude
+      player.vel.add(velocitySample.multiplyScalar(0.01*affectedMagnitude/canvas.width))
+      // shooting
+      if (mouse.movement.magnitude > 0) {
+        sim.splat(player.pos.x, player.pos.y, vel.x + mouse.movement.x, vel.y + mouse.movement.y, [0,0.1,0.2], {radius: 0.05})
+      }
+      
+    }
+    function getAffectedMagnitude(thisColor, sampleColor) {
+      return sampleColor[0] * (1-thisColor[0]) +
+      sampleColor[1] * (1-thisColor[1]) +
+      sampleColor[2] * (1-thisColor[2])
     }
     class Enemy {
-      constructor(pos, color) {
+      constructor(pos, shootColor, color, health) {
+        this.health = health
+        this.startingHealth = health
         this.color = color
+        this.shootColor = shootColor
         this.pos = new Vector(pos.x, pos.y)
+        this.vel = new Vector(0,0)
+        this.wallBounciness = 0.9
+        this.friction = 1.01
+        this.acceleration = 0.05
+        this.maxSpeed = 0.07
+        this.force = 10
+        this.dead = false
       }
-      move() {
+      update() {
+        if (this.dead) return
+        // update from fluid sim
+        let velocitySample = sim.sample("velocity", this.pos.x, this.pos.y)
+        let dyeSample = sim.sample("dye", this.pos.x, this.pos.y)
+        velocitySample = new Vector(velocitySample[0], velocitySample[1])
+        let affectedMagnitude = getAffectedMagnitude(this.color, dyeSample)
+        this.health -= affectedMagnitude * velocitySample.magnitude 
+        if (this.health < 0) {
+          this.dead = true
+        }
+        this.vel.add(velocitySample.multiplyScalar(-0.01 * affectedMagnitude/canvas.width))
 
+        // update pos, collide
+        this.vel.multiplyScalar(1/this.friction)
+        this.pos.add(this.vel)
+        if (this.pos.x < 0) { 
+          this.pos.x = 0
+          this.vel.x *= -this.wallBounciness 
+        } 
+        if (this.pos.x > 1) { 
+          this.pos.x = 1
+          this.vel.x *= -this.wallBounciness 
+        } 
+        if (this.pos.y < 0) { 
+          this.pos.y = 0
+          this.vel.y *= -this.wallBounciness 
+        } 
+        if (this.pos.y > 1) { 
+          this.pos.y = 1
+          this.vel.y *= -this.wallBounciness 
+        }
+
+        // move to player
+        let movementVec = new Vector(player.pos.x - this.pos.x,player.pos.y - this.pos.y)
+        movementVec.norm()
+        if (this.vel.magnitude < this.maxSpeed) this.vel.add(movementVec.copy().multiplyScalar(this.acceleration/canvas.width))
+
+        // shoot
+        let shootVec = movementVec.copy().multiplyScalar(this.force)
+        sim.splat(this.pos.x, this.pos.y, this.vel.x + shootVec.x, this.vel.y + shootVec.y, this.shootColor, {radius: 0.01})
       }
+    }
+    let enemies = []
+    for (let i = 0; i < 5; i++) {
+      enemies.push(new Enemy(new Vector(Math.random(), Math.random()), [0.4,0.2,0], [1,1,0], 10000))
     }
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -146,24 +232,41 @@
       ctx.lineWidth = 10
       ctx.strokeStyle = "#000000"
       ctx.stroke()
+
+      let playerHealthPercent = player.health / player.startingHealth
+      ctx.fillStyle = "#00ff00"
+      ctx.fillRect(player.pos.getRenderX() - 40*playerHealthPercent, player.pos.getRenderY() - 60, 80*playerHealthPercent, 10)
+      
       for (let enemy of enemies) {
         ctx.beginPath()
         ctx.arc(enemy.pos.getRenderX(), enemy.pos.getRenderY(), 20, 0, 6.29)
-        ctx.fillStyle = `rgb()`
-        throw "here"
+        let r = Math.min(255,enemy.color[0]*255)
+        let g = Math.min(255,enemy.color[1]*255)
+        let b = Math.min(255,enemy.color[2]*255)
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`
         ctx.fill()
         ctx.beginPath()
         ctx.arc(enemy.pos.getRenderX(), enemy.pos.getRenderY(), 20, 0, 6.29)
         ctx.lineWidth = 10
         ctx.strokeStyle = "#000000"
         ctx.stroke()
+
+        ctx.fillStyle = "#ff0000"
+        let healthPercent = enemy.health / enemy.startingHealth
+        ctx.fillRect(enemy.pos.getRenderX() - 40*healthPercent, enemy.pos.getRenderY() - 60, 80*healthPercent, 10)
       }
     }
     function animate() {
+      if (player.health < 0) throw "Ending functionality not implemented yet"
       updateKeys()
       updatePlayer()
       for (let enemy of enemies) enemy.update()
+      enemies = enemies.filter(enemy => !enemy.dead)
       render()
+      if (Date.now() > mouse.lastMovementTime + 100) {
+        mouse.movement.x = 0
+        mouse.movement.y = 0
+      }
       requestAnimationFrame(animate)
     }
     requestAnimationFrame(animate)
