@@ -44,10 +44,10 @@
     }
 
     let sim = FluidSimulation.create(fluidCanvas, {
-      SIM_RESOLUTION: 128,
+      SIM_RESOLUTION: 256,
       DYE_RESOLUTION: 1024,
       DENSITY_DISSIPATION: 0.5,
-      VELOCITY_DISSIPATION: 0.2,
+      VELOCITY_DISSIPATION: 0.1,
       PRESSURE: 0,
       CURL: 20,
       SPLAT_RADIUS: 0.03,
@@ -84,7 +84,8 @@
       weight: 1,
       wallBounciness: 0.9,
       health: 10000,
-      color: [0,1,0],
+      regeneration: 0.05,
+      color: [0,1,1],
       shootColor: [0, 0.5, 1]
     }
     player.startingHealth = player.health
@@ -148,13 +149,18 @@
       let affectedMagnitude = getAffectedMagnitude(player.color, dyeSample)
       player.health -= affectedMagnitude * velocitySample.magnitude
       player.vel.add(velocitySample.multiplyScalar(0.01*affectedMagnitude/canvas.width))
+      player.health += player.regeneration
       // shooting
       if (mouse.movement.magnitude > 0) {
         sim.splat(player.pos.x, player.pos.y, vel.x + mouse.movement.x, vel.y + mouse.movement.y, player.shootColor, {radius: 0.05})
       }
       
     }
+    function multiplyColor(color, x) {
+      return [color[0] * x, color[1] * x, color[2] * x]
+    }
     function getAffectedMagnitude(thisColor, sampleColor) {
+      let colorMag = Math.sqrt(sampleColor[0]**2 + sampleColor[1]**2 + sampleColor[2]**2)
       return sampleColor[0] * (1-thisColor[0]) +
       sampleColor[1] * (1-thisColor[1]) +
       sampleColor[2] * (1-thisColor[2])
@@ -218,7 +224,7 @@
       }
     }
     let enemies = []
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 1; i++) {
       enemies.push(new Enemy(new Vector(Math.random(), Math.random()), [0.4,0.2,0], [1,1,0], 10000))
     }
     function render() {
@@ -257,11 +263,13 @@
       }
     }
     function animate() {
-      if (player.health < 0) throw "Ending functionality not implemented yet"
       updateKeys()
       updatePlayer()
       for (let enemy of enemies) enemy.update()
       enemies = enemies.filter(enemy => !enemy.dead)
+      if (player.health < 0) {
+        document.body.innerText=""
+      }
       render()
       if (Date.now() > mouse.lastMovementTime + 100) {
         mouse.movement.x = 0
