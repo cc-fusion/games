@@ -84,7 +84,7 @@
       weight: 1,
       wallBounciness: 0.9,
       health: 10000,
-      color: [0,1,1],
+      color: [0,1,0],
       shootColor: [0, 0.5, 1]
     }
     player.startingHealth = player.health
@@ -150,7 +150,7 @@
       player.vel.add(velocitySample.multiplyScalar(0.01*affectedMagnitude/canvas.width))
       // shooting
       if (mouse.movement.magnitude > 0) {
-        sim.splat(player.pos.x, player.pos.y, vel.x + mouse.movement.x, vel.y + mouse.movement.y, [0,0.1,0.2], {radius: 0.05})
+        sim.splat(player.pos.x, player.pos.y, vel.x + mouse.movement.x, vel.y + mouse.movement.y, player.shootColor, {radius: 0.05})
       }
       
     }
