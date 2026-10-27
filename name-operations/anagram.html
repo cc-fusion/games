@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Performance Name Anagram Finder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #111;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        p.subtitle {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: #0076ff;
+            box-shadow: 0 0 0 3px rgba(0,118,255,0.2);
+        }
+        input[type="text"]:disabled {
+            background-color: #f0f0f0;
+        }
+        button#searchBtn {
+            padding: 12px 24px;
+            background-color: #0076ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        button#searchBtn:hover {
+            background-color: #005ecb;
+        }
+        button#searchBtn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            min-height: 20px;
+        }
+        .results-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .results-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .results-section h2 {
+            font-size: 16px;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .results-section h2 .count {
+            font-size: 12px;
+            font-weight: 400;
+            color: #999;
+        }
+        .section-icon {
+            font-size: 14px;
+        }
+        .results-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .results-list li {
+            padding: 7px 0;
+            border-bottom: 1px solid #f1f1f1;
+            font-size: 15px;
+        }
+        .results-list li:last-child {
+            border-bottom: none;
+        }
+        .empty-msg {
+            color: #aaa;
+            font-size: 14px;
+            padding: 8px 0;
+            font-style: italic;
+        }
+        .meta-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            text-align: right;
+        }
+        .help-text {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Name Anagram Finder</h1>
+    <p class="subtitle">Enter any text to find anagram matches across first names, last names, and full name combinations.</p>
+
+    <div class="search-container">
+        <input type="text" id="nameInput" placeholder="Enter any name or text..." disabled>
+        <button id="searchBtn" disabled>Find Anagrams</button>
+    </div>
+
+    <p class="help-text">Whitespace and punctuation are ignored. All letters are combined and matched against the database.</p>
+
+    <div id="status" class="status">Loading database...</div>
+
+    <div class="results-wrapper">
+        <div class="results-section">
+            <h2><span class="section-icon">👤</span> First Names <span id="firstCount" class="count"></span></h2>
+            <ul id="firstList" class="results-list"></ul>
+        </div>
+        <div class="results-section">
+            <h2><span class="section-icon">👥</span> Last Names <span id="lastCount" class="count"></span></h2>
+            <ul id="lastList" class="results-list"></ul>
+        </div>
+        <div class="results-section">
+            <h2><span class="section-icon">🔀</span> First + Last Combinations <span id="fullCount" class="count"></span></h2>
+            <ul id="fullList" class="results-list"></ul>
+            <div id="metaInfo" class="meta-info"></div>
+        </div>
+    </div>
+
+    <script>
+        const firstNameMap = new Map();
+        const lastNameMap = new Map();
+
+        let firstSigs = null;
+        let lastSigs = null;
+
+        const firstSigFreqs = new Map();
+        const lastSigFreqs = new Map();
+
+        const nameInput = document.getElementById('nameInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const statusDiv = document.getElementById('status');
+        const firstList = document.getElementById('firstList');
+        const lastList = document.getElementById('lastList');
+        const fullList = document.getElementById('fullList');
+        const firstCount = document.getElementById('firstCount');
+        const lastCount = document.getElementById('lastCount');
+        const fullCount = document.getElementById('fullCount');
+        const metaInfo = document.getElementById('metaInfo');
+
+        function getSignature(str) {
+            const len = str.length;
+            let count = 0;
+            // First pass: count valid chars
+            for (let i = 0; i < len; i++) {
+                const c = str.charCodeAt(i);
+                if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) count++;
+            }
+            if (count === 0) return '';
+            const arr = new Uint8Array(count);
+            let idx = 0;
+            for (let i = 0; i < len; i++) {
+                const c = str.charCodeAt(i);
+                if (c >= 65 && c <= 90) arr[idx++] = c + 32;
+                else if (c >= 97 && c <= 122) arr[idx++] = c;
+            }
+            arr.sort();
+            let result = '';
+            for (let i = 0; i < count; i++) result += String.fromCharCode(arr[i]);
+            return result;
+        }
+
+        function sigToFreq(sig) {
+            const freq = new Int8Array(26);
+            for (let i = 0; i < sig.length; i++) {
+                freq[sig.charCodeAt(i) - 97]++;
+            }
+            return freq;
+        }
+
+        function subtractFreq(a, b, dest) {
+            for (let i = 0; i < 26; i++) {
+                const v = a[i] - b[i];
+                if (v < 0) return false;
+                dest[i] = v;
+            }
+            return true;
+        }
+
+        function freqToSig(freq) {
+            let s = '';
+            for (let i = 0; i < 26; i++) {
+                const ch = String.fromCharCode(i + 97);
+                for (let j = 0; j < freq[i]; j++) s += ch;
+            }
+            return s;
+        }
+
+        function renderList(ul, countEl, matches, cap) {
+            ul.innerHTML = '';
+            if (matches.length === 0) {
+                ul.innerHTML = '<li class="empty-msg">No anagrams found.</li>';
+                countEl.textContent = '';
+                return;
+            }
+            const fragment = document.createDocumentFragment();
+            const show = Math.min(matches.length, cap);
+            for (let i = 0; i < show; i++) {
+                const li = document.createElement('li');
+                li.textContent = matches[i];
+                fragment.appendChild(li);
+            }
+            if (matches.length > cap) {
+                const li = document.createElement('li');
+                li.className = 'empty-msg';
+                li.textContent = `…and ${(matches.length - cap).toLocaleString()} more`;
+                fragment.appendChild(li);
+            }
+            ul.appendChild(fragment);
+            countEl.textContent = `(${matches.length.toLocaleString()})`;
+        }
+
+        async function init() {
+            const startTime = performance.now();
+            try {
+                const response = await fetch('https://cc-fusion.github.io/games/name-operations/names.json');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                const firstNames = data.first_names || [];
+                const lastNames = data.last_names || [];
+
+                for (let i = 0; i < firstNames.length; i++) {
+                    const name = firstNames[i];
+                    const sig = getSignature(name);
+                    if (!sig) continue;
+                    let bucket = firstNameMap.get(sig);
+                    if (!bucket) { bucket = []; firstNameMap.set(sig, bucket); }
+                    bucket.push(name);
+                }
+
+                for (let i = 0; i < lastNames.length; i++) {
+                    const name = lastNames[i];
+                    const sig = getSignature(name);
+                    if (!sig) continue;
+                    let bucket = lastNameMap.get(sig);
+                    if (!bucket) { bucket = []; lastNameMap.set(sig, bucket); }
+                    bucket.push(name);
+                }
+
+                for (const [sig, names] of firstNameMap) {
+                    firstNameMap.set(sig, [...new Set(names)]);
+                }
+                for (const [sig, names] of lastNameMap) {
+                    lastNameMap.set(sig, [...new Set(names)]);
+                }
+
+                firstSigs = [];
+                for (const [sig, names] of firstNameMap) {
+                    firstSigs.push({ sig, names });
+                    firstSigFreqs.set(sig, sigToFreq(sig));
+                }
+                lastSigs = [];
+                for (const [sig, names] of lastNameMap) {
+                    lastSigs.push({ sig, names });
+                    lastSigFreqs.set(sig, sigToFreq(sig));
+                }
+
+                const totalItems = firstNames.length + lastNames.length;
+                const loadTime = (performance.now() - startTime).toFixed(0);
+
+                statusDiv.textContent = `Loaded ${totalItems.toLocaleString()} names (${firstNameMap.size.toLocaleString()} first sigs, ${lastNameMap.size.toLocaleString()} last sigs) in ${loadTime}ms. Ready!`;
+                statusDiv.style.color = 'green';
+
+                nameInput.disabled = false;
+                searchBtn.disabled = false;
+                nameInput.focus();
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = 'Failed to load name database. ' + error.message;
+                statusDiv.style.color = 'red';
+            }
+        }
+
+        function searchSingle(input, map) {
+            const sig = getSignature(input);
+            if (!sig) return [];
+            return map.get(sig) || [];
+        }
+
+        function searchFull(input) {
+            const fullSig = getSignature(input);
+            if (!fullSig) return [];
+
+            const fullFreq = sigToFreq(fullSig);
+            const results = [];
+            const remainder = new Int8Array(26);
+            const CAP = 10000;
+
+            const iterateFirst = firstSigs.length <= lastSigs.length;
+
+            if (iterateFirst) {
+                for (let i = 0; i < firstSigs.length; i++) {
+                    const entry = firstSigs[i];
+                    const fFreq = firstSigFreqs.get(entry.sig);
+                    if (!subtractFreq(fullFreq, fFreq, remainder)) continue;
+                    const remSig = freqToSig(remainder);
+                    const lastMatches = lastNameMap.get(remSig);
+                    if (!lastMatches) continue;
+                    const firsts = entry.names;
+                    for (let fi = 0; fi < firsts.length; fi++) {
+                        for (let li = 0; li < lastMatches.length; li++) {
+                            results.push(firsts[fi] + ' ' + lastMatches[li]);
+                        }
+                        if (results.length >= CAP) return results;
+                    }
+                }
+            } else {
+                for (let i = 0; i < lastSigs.length; i++) {
+                    const entry = lastSigs[i];
+                    const lFreq = lastSigFreqs.get(entry.sig);
+                    if (!subtractFreq(fullFreq, lFreq, remainder)) continue;
+                    const remSig = freqToSig(remainder);
+                    const firstMatches = firstNameMap.get(remSig);
+                    if (!firstMatches) continue;
+                    const lasts = entry.names;
+                    for (let li = 0; li < lasts.length; li++) {
+                        for (let fi = 0; fi < firstMatches.length; fi++) {
+                            results.push(firstMatches[fi] + ' ' + lasts[li]);
+                        }
+                        if (results.length >= CAP) return results;
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        function performSearch() {
+            const input = nameInput.value.trim();
+            if (!input) return;
+
+            const t0 = performance.now();
+
+            const firstMatches = searchSingle(input, firstNameMap);
+            const lastMatches = searchSingle(input, lastNameMap);
+            const fullMatches = searchFull(input);
+
+            const t1 = performance.now();
+
+            renderList(firstList, firstCount, firstMatches, 200);
+            renderList(lastList, lastCount, lastMatches, 200);
+            renderList(fullList, fullCount, fullMatches, 500);
+
+            let info = `Total search completed in ${(t1 - t0).toFixed(3)} ms`;
+            if (fullMatches.length >= 10000) info += ' — full-name results capped at 10,000';
+            metaInfo.textContent = info;
+        }
+
+        searchBtn.addEventListener('click', performSearch);
+        nameInput.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+
+        init();
+    </script>
+</body>
+</html>
