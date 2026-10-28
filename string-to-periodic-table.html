@@ -13,8 +13,9 @@
       height: 100%;
     }
     #textarea {
+      caret-color: black;
       color: rgba(0,0,0,0);
-      caret-color: auto;
+      background-color: rgba(0,0,0,0);
     }
   </style>
 </head>
@@ -49,7 +50,8 @@
       return branches
     }
     textarea.addEventListener("input", (e) => {
-      textareaOverlay.value = textarea.value
+      console.log(stringToElements(textarea.value))
+      textareaOverlay.value = stringToElements(textarea.value)[0]?.join("")
     })
   </script>
 </body>
