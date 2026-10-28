@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>String to periodic table</title>
+  <style>
+    textarea {
+      position: fixed;
+      top: 0;
+      left: 0;
+      font-family: monospace;
+      width: 100%;
+      height: 100%;
+    }
+    #textarea {
+      color: rgba(0,0,0,0);
+      caret-color: auto;
+    }
+  </style>
+</head>
+<body>
+  <textarea id="textarea-overlay"></textarea>
+  <textarea id="textarea"></textarea>
+  <script>
+    let textarea = document.getElementById("textarea")
+    let textareaOverlay = document.getElementById("textarea-overlay")
+    let elementList = ["H","He","Li","Be","B","C","N","O","F","Ne","Na","Mg","Al","Si","P","S","Cl","Ar","K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr","Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe","Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn","Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr","Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"]
+    let elementListMap = {}
+    for (let element of elementList) {
+      elementListMap[element.toLowerCase()] = element
+    }
+
+    function stringToElements(str, i=0, currentBranch=[]) {
+      if (i >= str.length) return [currentBranch]
+      let branches = []
+
+      let single = str[i].toLowerCase()
+      if (elementListMap[single]) {
+        let singleBranchCopy = currentBranch.concat(elementListMap[single])
+        branches = branches.concat(stringToElements(str, i + 1, singleBranchCopy))
+      }
+      if (i+1 >= str.length) return branches
+
+      let double = str.slice(i, i+2).toLowerCase()
+      if (elementListMap[double]) {
+        let doubleBranchCopy = currentBranch.concat(elementListMap[double])
+        branches = branches.concat(stringToElements(str, i + 2, doubleBranchCopy))
+      }
+      return branches
+    }
+    textarea.addEventListener("input", (e) => {
+      textareaOverlay.value = textarea.value
+    })
+  </script>
+</body>
+</html>
