@@ -106,51 +106,60 @@
     }
     initListeners()
     
-    class Player {
+    class Unit {
+      updateMovement() { 
+        if (this.pos.x < 0) { 
+          this.pos.x = 0 
+          this.vel.x *= -this.wallBounciness 
+        } 
+        if (this.pos.x > 1) { 
+          this.pos.x = 1 
+          this.vel.x *= -this.wallBounciness 
+        } 
+        if (this.pos.y < 0) { 
+          this.pos.y = 0 
+          this.vel.y *= -this.wallBounciness 
+        } 
+        if (this.pos.y > 1) { 
+          this.pos.y = 1 
+          this.vel.y *= -this.wallBounciness 
+        }
+        this.pos.add(this.vel) 
+        this.vel.multiplyScalar(1/this.friction) 
+      }
+    }
+    class Player extends Unit {
       constructor(pos) {
         this.pos = new Vector(0.5, 0.5)
         this.vel = new Vector(0,0)
         this.shootColor = [0, 0.1, 0.2]
-        this.speed = 1
+        this.speed = 0.005
+        this.wallBounciness = 1
       }
-      updateFromKeys() {
+      updateFromKeys() { 
         let newVel = new Vector(0,0)
         if (keys["arrowup"] || keys["w"]) newVel.y -= 1
         if (keys["arrowdown"] || keys["s"]) newVel.y += 1
         if (keys["arrowleft"] || keys["a"]) newVel.x -= 1
         if (keys["arrowright"] || keys["d"]) newVel.x += 1
-        player.vel.add(newVel.norm().multiplyScalar(player.speed/canvasHypot))
-      }
-      updatePos() {
-        player.pos.add(player.vel)
-        player.vel.multiplyScalar(1/player.friction)
-        if (player.pos.x < 0) {
-          player.pos.x = 0
-          player.vel.x *= -player.wallBounciness
-        }
-        if (player.pos.x > 1) {
-          player.pos.x = 1
-          player.vel.x *= -player.wallBounciness
-        }
-        if (player.pos.y < 0) {
-          player.pos.y = 0
-          player.vel.y *= -player.wallBounciness
-        }
-        if (player.pos.y > 1) {
-          player.pos.y = 1
-          player.vel.y *= -player.wallBounciness
-        }
-      }
+        this.vel.add(newVel.norm().multiplyScalar(this.speed/canvasHypot))
+      } 
       updateShooting() {
-        
+
       }
       update() {
-        updateFromKeys()
-        updatePos()
-        updateShooting()
+        this.updateMovement()
+        this.updateFromKeys()
+        this.updateShooting()
+      }
+      render() {
+        ctx.beginPath()
+        ctx.arc(this.pos.x * canvas.width, this.pos.y * canvas.height)
+        ctx.fillStyle = "#0f0"
+        ctx.fill()
       }
     }
-    class Enemy {
+    class Enemy extends Unit {
       constructor(pos, speed, optionsOverride = {}) {
         let options = {
           shootColor: [1,1,0],
@@ -165,15 +174,17 @@
         this.friction = options.friction
       }
       update() {
+        this.updateMovement()
         let movementVector = new Vector(player.pos.x - this.pos.x, player.pos.y - this.pos.y).norm().multiplyScalar(this.speed)
         this.vel.add(movementVector)
-        this.pos.add(this.vel)
-        this.vel.multiplyScalar(1/this.friction)
       }
+
     }
 
     let player = new Player()
-    let enemies = []
+    let enemies = [
+      new Enemy(new Vector(0.1,0.1),0.005)
+    ]
 
     function animate() {
       // updating
