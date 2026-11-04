@@ -48,11 +48,11 @@
       // draw level
       let gridSize = state.level.length
       let padding = 0.05
-      let edgePadding = 0.1
+      let edgePadding = 0.05
 
-      let offset = canvas.width * edgePadding
-      let width = canvas.width * (1-edgePadding*2)
-      let cellSize = width/gridSize*0.9
+      let offset = canvas.width * edgePadding/2
+      let width = canvas.width * (1-edgePadding)
+      let cellSize = width/gridSize*(1-padding*2)
       let cellSpacing = width/gridSize
       for (let x = 0; x < gridSize; x++) {
         for (let y = 0; y < gridSize; y++) {
