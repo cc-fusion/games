@@ -12,7 +12,7 @@
     canvas {
       width: 100vmin;
       height: 100vmin;
-      background-color: #666666;
+      background-color: #000000;
       position: fixed;
       top: 50%;
       left: 50%;
@@ -33,6 +33,20 @@
       initalLevel: null,
       level: null,
       needsDraw: true,
+    }
+    let config = {
+      colors: [
+        "#f5ef42",
+        "#00ff55",
+        "#42c5ff",
+
+        "#4248f5", 
+        "#a842f5", 
+        "#f5428d", 
+
+        "#f54242",
+        "#8a0000" 
+      ]
     }
     function copy(arr2d) {
       return arr2d.map(a=>a.map(b=>b))
@@ -56,7 +70,8 @@
       let cellSpacing = width/gridSize
       for (let x = 0; x < gridSize; x++) {
         for (let y = 0; y < gridSize; y++) {
-          ctx.fillStyle = "#000000"
+          let currentNumber = state.level[y][x]
+          ctx.fillStyle = config.colors[currentNumber-1]
           let posX = offset + cellSpacing*(x+0.5)
           let posY = offset + cellSpacing*(y+0.5)
           let size = cellSize
@@ -71,9 +86,9 @@
       draw()
     }
     loadLevel([
-      [0,0,0],
-      [0,0,0],
-      [0,0,0],
+      [1,2,3],
+      [4,5,6],
+      [7,8,9],
     ],0,0)
     requestAnimationFrame(animate)
   </script>
