@@ -69,16 +69,32 @@
       let width = canvas.width * (1-edgePadding)
       let cellSize = width/gridSize*(1-padding*2)
       let cellSpacing = width/gridSize
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.font = "150px Arial"
+      ctx.globalAlpha = 1
       for (let x = 0; x < gridSize; x++) {
         for (let y = 0; y < gridSize; y++) {
           let currentNumber = state.level[y][x]
-          ctx.fillStyle = config.colors[currentNumber-1]
+          if (currentNumber == 0) continue
           let posX = offset + cellSpacing*(x+0.5)
           let posY = offset + cellSpacing*(y+0.5)
           let size = cellSize
-          ctx.fillRect(posX-size/2,posY-size/2,size,size)
+          ctx.beginPath()
+          ctx.roundRect(posX-size/2,posY-size/2,size,size, 100)
+          ctx.fillStyle = config.colors[Math.min(config.colors.length-1, currentNumber-1)]
+          ctx.fill()
+
+          ctx.fillStyle = "#ffffff"
+          ctx.fillText(currentNumber, posX, posY)
         }
       }
+      ctx.globalAlpha = 0.7
+      ctx.fillStyle = "#000000"
+      ctx.beginPath()
+      ctx.lineWidth = cellSize/20
+      ctx.arc(offset + (state.x+0.5) * cellSpacing, offset + (state.y+0.5) * cellSpacing, cellSize/2/1.5, 0, 6.29)
+      ctx.stroke()
     }
     function animate() {
       requestAnimationFrame(animate)
