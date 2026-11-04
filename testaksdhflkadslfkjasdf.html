@@ -161,7 +161,12 @@
         mouse.down = false
       })
     }
-    function generateLevel(size, iter=10) {
+    function generateLevel(size, overrideOptions={}) {
+      let options = {
+        iter: 10,
+        lessValueBias: 1,
+        ...overrideOptions
+      }
       let grid = []
       for (let i = 0; i < size; i++) {
         grid.push([])
@@ -171,13 +176,21 @@
       }
       let player = {x: 0, y: 0}
       let i = 0
-      while (i < iter) {
+      while (i < options.iter) {
         let bias = {
-          up: 1,
-          down: 1,
-          left: 1,
-          right: 1
+          up: player.y - 1 < 0 ? 0 : 1,
+          down: player.y + 1 >= grid.length ? 0 : 1,
+          left: player.x - 1 < 0 ? 0 : 1,
+          right: player.x + 1 >= grid.length ? 0 : 1
         }
+        let cellUp = grid[player.y-1]?.[player.x] || 1
+        let cellDown = grid[player.y+1]?.[player.x] || 1
+        let cellLeft = grid[player.y]?.[player.x-1] || 1
+        let cellRight = grid[player.y]?.[player.x+1] || 1
+        bias.up    = bias.up    / cellUp    * options.lessValueBias
+        bias.down  = bias.down  / cellDown  * options.lessValueBias
+        bias.left  = bias.left  / cellLeft  * options.lessValueBias
+        bias.right = bias.right / cellRight * options.lessValueBias
 
         let total = bias.up + bias.down + bias.left + bias.right
         bias.up /= total
@@ -190,34 +203,28 @@
         bias.right += bias.left
         let random = Math.random()
         if (random < bias.up) {
-          if (player.y-1 >= 0) {
-            grid[player.y][player.x]++
-            player.y -= 1
-            i++
-          }
+          grid[player.y][player.x]++
+          player.y -= 1
+          i++
         } else if (random < bias.down) {
-          if (player.y+1 < grid.length) {
-            grid[player.y][player.x]++
-            player.y += 1
-            i++
-          }
+          grid[player.y][player.x]++
+          player.y += 1
+          i++
         } else if (random < bias.left) {
-          if (player.x-1 >= 0) {
-            grid[player.y][player.x]++
-            player.x -= 1
-            i++
-          }
+          grid[player.y][player.x]++
+          player.x -= 1
+          i++
         } else {
-          if (player.x+1 < grid[0].length) {
-            grid[player.y][player.x]++
-            player.x += 1
-            i++
-          }
+          grid[player.y][player.x]++
+          player.x += 1
+          i++
         }
       }
       return grid
     }
-    loadLevel(generateLevel(10,100),0,0)
+    loadLevel(generateLevel(10,{
+      iter: 1000
+    }),0,0)
     initListeners()
     requestAnimationFrame(animate)
   </script>
