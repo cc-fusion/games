@@ -33,21 +33,27 @@
       initalLevel: null,
       level: null,
       needsDraw: true,
+      rendering: {
+        offset: 0,
+        width: 0,
+        cellSize: 0,
+        cellSpacing: 0,
+      },
     }
     let config = {
       colors: [
         "#f5ef42",
         "#00ff55",
         "#42c5ff",
-
         "#4248f5", 
         "#a842f5", 
         "#f5428d", 
-
         "#f54242",
         "#8b0000" ,
         "#3a2c2c"
-      ]
+      ],
+      padding: 0.05,
+      edgePadding: 0.05
     }
     function copy(arr2d) {
       return arr2d.map(a=>a.map(b=>b))
@@ -57,18 +63,17 @@
       state.y = startY
       state.level = grid
       state.initalLevel = grid
+
+      state.rendering.offset = canvas.width * edgePadding/2
+      state.rendering.width = canvas.width * (1-edgePadding)
+      state.rendering.cellSize = width/grid.length*(1-padding*2)
+      state.rendering.cellSpacing = width/grid.length
+
     }
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       // draw level
-      let gridSize = state.level.length
-      let padding = 0.05
-      let edgePadding = 0.05
-
-      let offset = canvas.width * edgePadding/2
-      let width = canvas.width * (1-edgePadding)
-      let cellSize = width/gridSize*(1-padding*2)
-      let cellSpacing = width/gridSize
+      
       ctx.textAlign = "center"
       ctx.textBaseline = "middle"
       ctx.font = "150px Arial"
@@ -77,9 +82,9 @@
         for (let y = 0; y < gridSize; y++) {
           let currentNumber = state.level[y][x]
           if (currentNumber == 0) continue
-          let posX = offset + cellSpacing*(x+0.5)
-          let posY = offset + cellSpacing*(y+0.5)
-          let size = cellSize
+          let posX = offset + state.rendering.cellSpacing*(x+0.5)
+          let posY = offset + state.rendering.cellSpacing*(y+0.5)
+          let size = state.rendering.cellSize
           ctx.beginPath()
           ctx.roundRect(posX-size/2,posY-size/2,size,size, 100)
           ctx.fillStyle = config.colors[Math.min(config.colors.length-1, currentNumber-1)]
@@ -93,7 +98,7 @@
       ctx.fillStyle = "#000000"
       ctx.beginPath()
       ctx.lineWidth = cellSize/20
-      ctx.arc(offset + (state.x+0.5) * cellSpacing, offset + (state.y+0.5) * cellSpacing, cellSize/2/1.5, 0, 6.29)
+      ctx.arc(state.rendering.offset + (state.x+0.5) * state.rendering.cellSpacing, state.rendering.offset + (state.y+0.5) * state.rendering.cellSpacing, state.rendering.cellSize/2/1.5, 0, 6.29)
       ctx.stroke()
     }
     function animate() {
@@ -101,6 +106,26 @@
       if (!state.needsDraw) return
       state.needsDraw = false
       draw()
+    }
+    let keys = {}
+    let mouse = {}
+    function initListeners() {
+      addEventListener("keydown", (e) => {
+        keys[e.key.toLowerCase()] = true
+      })
+      addEventListener("keyup", (e) => {
+        keys[e.key.toLowerCase()] = false
+      })
+      addEventListener("mousemove", (e) => {
+        mouse.x = e.clientX
+        mouse.y = e.clientY
+      })
+      addEventListener("mousedown", (e) => {
+        mouse.down = true
+      })
+      addEventListener("mouseup", (e) => {
+        mouse.down = false
+      })
     }
     loadLevel([
       [1,2,3],
