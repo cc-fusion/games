@@ -30,7 +30,7 @@
     let state = {
       x: 0,
       y: 0,
-      initalLevel: null,
+      initState: null,
       level: null,
       needsDraw: true,
       rendering: {
@@ -41,17 +41,19 @@
       },
     }
     let config = {
-      colors: [
-        "#f5ef42",
-        "#00ff55",
-        "#42c5ff",
-        "#4248f5", 
-        "#a842f5", 
-        "#f5428d", 
-        "#f54242",
-        "#8b0000" ,
-        "#3a2c2c"
-      ],
+      colors: {
+        numbers: [
+          "#f5ef42",
+          "#00ff55",
+          "#42c5ff",
+          "#4248f5", 
+          "#a842f5", 
+          "#f5428d", 
+          "#f54242",
+          "#8b0000",
+        ],
+        "solid": "#3a2c2c",
+      },
       padding: 0.05,
       edgePadding: 0.05
     }
@@ -62,13 +64,13 @@
       state.x = startX
       state.y = startY
       state.level = grid
-      state.initalLevel = grid
 
-      state.rendering.offset = canvas.width * edgePadding/2
-      state.rendering.width = canvas.width * (1-edgePadding)
-      state.rendering.cellSize = width/grid.length*(1-padding*2)
-      state.rendering.cellSpacing = width/grid.length
-
+      state.rendering.offset = canvas.width * config.edgePadding/2
+      state.rendering.width = canvas.width * (1-config.edgePadding)
+      state.rendering.cellSize = state.rendering.width/grid.length*(1-config.padding*2)
+      state.rendering.cellSpacing = state.rendering.width/grid.length
+      
+      state.reset = ()=>loadLevel(grid, startX, startY)
     }
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -76,18 +78,22 @@
       
       ctx.textAlign = "center"
       ctx.textBaseline = "middle"
-      ctx.font = "150px Arial"
+      ctx.font = state.rendering.cellSize/5+"px Arial"
       ctx.globalAlpha = 1
-      for (let x = 0; x < gridSize; x++) {
-        for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < state.level.length; x++) {
+        for (let y = 0; y < state.level.length; y++) {
           let currentNumber = state.level[y][x]
           if (currentNumber == 0) continue
-          let posX = offset + state.rendering.cellSpacing*(x+0.5)
-          let posY = offset + state.rendering.cellSpacing*(y+0.5)
+          let posX = state.rendering.offset + state.rendering.cellSpacing*(x+0.5)
+          let posY = state.rendering.offset + state.rendering.cellSpacing*(y+0.5)
           let size = state.rendering.cellSize
           ctx.beginPath()
           ctx.roundRect(posX-size/2,posY-size/2,size,size, 100)
-          ctx.fillStyle = config.colors[Math.min(config.colors.length-1, currentNumber-1)]
+          if (currentNumber == "solid") {
+            ctx.fillStyle = config.colors.solid
+          } else {
+            ctx.fillStyle = config.colors.numbers[Math.min(config.colors.numbers.length-1, currentNumber-1)]
+          }
           ctx.fill()
 
           ctx.fillStyle = "#ffffff"
@@ -97,7 +103,7 @@
       ctx.globalAlpha = 0.7
       ctx.fillStyle = "#000000"
       ctx.beginPath()
-      ctx.lineWidth = cellSize/20
+      ctx.lineWidth = state.rendering.cellSize/20
       ctx.arc(state.rendering.offset + (state.x+0.5) * state.rendering.cellSpacing, state.rendering.offset + (state.y+0.5) * state.rendering.cellSpacing, state.rendering.cellSize/2/1.5, 0, 6.29)
       ctx.stroke()
     }
@@ -107,11 +113,39 @@
       state.needsDraw = false
       draw()
     }
+    function canMove(x,y) {
+      let newX = state.x + x
+      let newY = state.y + y
+      if (newX < 0 || newX >= state.level.length || newY < 0 || newY >= state.level.length) return false
+      if (state.level[newY][newX] == 0) return false
+      return true
+    }
+    function move(x,y) {
+      if (!canMove(x,y)) return false
+      let currentBlock = state.level[state.y][state.x]
+      let newBlock = currentBlock
+      if (currentBlock == "solid") {
+        newBlock = "solid"
+      } else {
+        newBlock--
+      }
+      state.level[state.y][state.x] = newBlock
+      state.x += x
+      state.y += y
+      state.needsDraw = true
+      return true
+    }
+
     let keys = {}
     let mouse = {}
     function initListeners() {
       addEventListener("keydown", (e) => {
-        keys[e.key.toLowerCase()] = true
+        let key = e.key.toLowerCase()
+        keys[key] = true
+        if (key == "arrowup") move(0,-1)
+        if (key == "arrowdown") move(0,1)
+        if (key == "arrowleft") move(-1,0)
+        if (key == "arrowright") move(1,0)
       })
       addEventListener("keyup", (e) => {
         keys[e.key.toLowerCase()] = false
@@ -127,11 +161,64 @@
         mouse.down = false
       })
     }
-    loadLevel([
-      [1,2,3],
-      [4,5,6],
-      [7,8,9],
-    ],0,0)
+    function generateLevel(size, iter=10) {
+      let grid = []
+      for (let i = 0; i < size; i++) {
+        grid.push([])
+        for (let j = 0; j < size; j++) {
+          grid[i].push(0)
+        }
+      }
+      let player = {x: 0, y: 0}
+      let i = 0
+      while (i < iter) {
+        let bias = {
+          up: 1,
+          down: 1,
+          left: 1,
+          right: 1
+        }
+
+        let total = bias.up + bias.down + bias.left + bias.right
+        bias.up /= total
+        bias.down /= total
+        bias.left /= total
+        bias.right /= total
+
+        bias.down += bias.up
+        bias.left += bias.down
+        bias.right += bias.left
+        let random = Math.random()
+        if (random < bias.up) {
+          if (player.y-1 >= 0) {
+            grid[player.y][player.x]++
+            player.y -= 1
+            i++
+          }
+        } else if (random < bias.down) {
+          if (player.y+1 < grid.length) {
+            grid[player.y][player.x]++
+            player.y += 1
+            i++
+          }
+        } else if (random < bias.left) {
+          if (player.x-1 >= 0) {
+            grid[player.y][player.x]++
+            player.x -= 1
+            i++
+          }
+        } else {
+          if (player.x+1 < grid[0].length) {
+            grid[player.y][player.x]++
+            player.x += 1
+            i++
+          }
+        }
+      }
+      return grid
+    }
+    loadLevel(generateLevel(10,100),0,0)
+    initListeners()
     requestAnimationFrame(animate)
   </script>
 </body>
