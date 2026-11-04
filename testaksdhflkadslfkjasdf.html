@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+  <style>
+    body {
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+    }
+    canvas {
+      width: 100vmin;
+      height: 100vmin;
+      background-color: #666666;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    let canvas = document.getElementById("canvas")
+    let ctx = canvas.getContext("2d")
+    canvas.width = 2000
+    canvas.height = 2000
+    let state = {
+      x: 0,
+      y: 0,
+      initalLevel: null,
+      level: null,
+      needsDraw: true,
+    }
+    function copy(arr2d) {
+      return arr2d.map(a=>a.map(b=>b))
+    }
+    function loadLevel(grid, startX, startY) {
+      state.x = startX
+      state.y = startY
+      state.level = grid
+      state.initalLevel = grid
+    }
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      // draw level
+      let gridSize = state.level.length
+      let padding = 0.05
+      let edgePadding = 0.1
+
+      let offset = canvas.width * edgePadding
+      let width = canvas.width * (1-edgePadding*2)
+      let cellSize = width/gridSize*0.9
+      let cellSpacing = width/gridSize
+      for (let x = 0; x < gridSize; x++) {
+        for (let y = 0; y < gridSize; y++) {
+          ctx.fillStyle = "#000000"
+          let posX = offset + cellSpacing*(x+0.5)
+          let posY = offset + cellSpacing*(y+0.5)
+          let size = cellSize
+          ctx.fillRect(posX-size/2,posY-size/2,size,size)
+        }
+      }
+    }
+    function animate() {
+      requestAnimationFrame(animate)
+      if (!state.needsDraw) return
+      state.needsDraw = false
+      draw()
+    }
+    loadLevel([
+      [0,0,0],
+      [0,0,0],
+      [0,0,0],
+    ],0,0)
+    requestAnimationFrame(animate)
+  </script>
+</body>
+</html>
