@@ -185,6 +185,8 @@
       ctx.lineWidth = state.rendering.cellSize/20
       ctx.arc(state.rendering.offset + (state.x+0.5) * state.rendering.cellSpacing, state.rendering.offset + (state.y+0.5) * state.rendering.cellSpacing, state.rendering.cellSize/2/1.5, 0, 6.29)
       ctx.stroke()
+
+      statusText.innerText = "Moves: " + state.moves
     }
     function animate() {
       requestAnimationFrame(animate)
