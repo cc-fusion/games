@@ -92,12 +92,27 @@
     </div>
   </div>
   <script>
-    class SimulatedState() {
-      constructor(grid, x, y, moves) {
-        this.grid = grid
+    class SimulatedState {
+      constructor(grid, x, y) {
+        this.grid = grid.map(a=>[...a])
         this.x = x
         this.y = y
-        this.moves = moves
+        this.moves = 0
+        this.minMoves = 1/0
+        this.visitedStates = new Set()
+      }
+      getHashState() {
+        let arr = grid.concat([this.x, this.y])
+        let hash = 5381;
+        for (let i = 0; i < arr.length; i++) {
+          const row = arr[i];
+          for (let j = 0; j < row.length; j++) {
+            // hash * 33 + val
+            hash = ((hash << 5) + hash) + row[j];
+            hash = hash & hash; // Convert to 32bit integer
+          }
+        }
+        return hash;
       }
       canMove(x, y) {
         let newX = this.x + x
@@ -108,7 +123,7 @@
       }
       move(x, y) {
         if (!this.canMove(x,y)) return false
-        grid[this.y][this.x]--
+        this.grid[this.y][this.x]--
         this.x += x
         this.y += y
         this.moves++
@@ -117,19 +132,40 @@
       undoMove(x, y) {
         this.x -= x
         this.y -= y
-        grid[this.y][this.x]++
+        this.grid[this.y][this.x]++
         this.moves--
       }
-    }
-    class SimulatedGame() {
-      constructor(grid, x, y) {
-        this.grid = grid.map(a=>[...a])
-        this.x = x
-        this.y = y
-        this.state = new SimulatedState(this.grid, x, y, 0)
+      hasWon() {
+        for (let row of this.grid) {
+          for (let x of row) {
+            if (x != 0 && x != "solid") return false
+          }
+        }
+        return true
       }
-      solve() {
-
+      branchHelper(x,y) {
+        let move = this.move(x,y)
+        if (move) {
+          let currentHash = this.getHashState()
+          if (this.visitedStates.has(currentHash)) {
+            return
+          } else {
+            this.visitedStates.add(currentHash)
+            this.branch()
+            this.undoMove(x,y)
+          }
+        }
+      }
+      branch() {
+        let bottomMove = this.branchHelper(0,1)
+        let topMove = this.branchHelper(0,-1)
+        let rightMove = this.branchHelper(1,0)
+        let leftMove = this.branchHelper(-1,0)
+        if (!bottomMove && !topMove && !rightMove && !leftMove) {
+          if (this.hasWon()) {
+            this.minMoves = Math.min(this.minMoves, this.moves)
+          }
+        }
       }
     }
   </script>
@@ -379,13 +415,17 @@
       return grid
     }
     function load() {
-      loadLevel(generateLevel(5,{
+      let level = generateLevel(5,{
         iter: 50,
         lowValueAttraction: 1/100,
         emptyValueAttraction: 100,
         solidAttraction: 10,
         minSolid: 5,
-      }),0,0)
+      })
+      loadLevel(level,0,0)
+      window.simState = new SimulatedState(level, 0, 0)
+      simState.branch()
+      console.log(simState)
     }
     load()
     initListeners()
