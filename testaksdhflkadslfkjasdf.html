@@ -99,6 +99,7 @@
         this.y = y
         this.moves = 0
         this.minMoves = 1/0
+        this.path = []
         this.visitedStates = new Set()
       }
       getHashState() {
@@ -127,12 +128,14 @@
         this.x += x
         this.y += y
         this.moves++
+        this.path.push({x:x,y:y})
         return true
       }
       undoMove(x, y) {
         this.x -= x
         this.y -= y
         this.grid[this.y][this.x]++
+        this.path.pop()
         this.moves--
       }
       hasWon() {
