@@ -218,7 +218,7 @@
           ctx.fill()
 
           ctx.fillStyle = "#ffffff"
-          ctx.fillText(currentNumber, posX, posY)
+          if (/^[0-9]+$/.test(currentNumber)) ctx.fillText(currentNumber, posX, posY)
         }
       }
       ctx.globalAlpha = 0.7
@@ -243,12 +243,10 @@
       if (state.level[newY][newX] == 0) return false
       return true
     }
-    function isEmpty() {
-      let total = 0
+    function hasWon() {
       for (let row of state.level) {
         for (let x of row) {
-          total += x
-          if (total > 1) return false
+          if (x != 0 && x != "solid") return false
         }
       }
       return true
@@ -284,12 +282,10 @@
         if (key == "arrowleft") move(-1,0)
         if (key == "arrowright") move(1,0)
         if (key == "r") state.reset()
-        if (isStuck()) {
-          if (isEmpty()) {
-            btnNewLevel.classList.add("highlighted")
-          } else {
-            btnReset.classList.add("highlighted")
-          }
+        if (hasWon()) {
+          btnNewLevel.classList.add("highlighted")
+        } else if (isStuck()) {
+          btnReset.classList.add("highlighted")
         }
       })
       addEventListener("keyup", (e) => {
@@ -312,16 +308,19 @@
         load()
       })
     }
-    function defaultVal(v, d) {
-      if (!isFinite(v) || isNaN(v) || d == null || d == undefined) return d
-      return v
-    }
     function generateLevel(size, overrideOptions={}) {
       let options = {
         iter: 10,
-        lessValueBias: 0.1,
+        higherValueBias: 0.1,
         emptyValueBias: 1,
+        repeatSolidBias: 1,
+        minSolid: 9,
         ...overrideOptions
+      }
+      let createBias = (value) => {
+        if (value == "solid") return options.repeatSolidBias
+        if (value == null || value == 0) return options.emptyValueBias
+        return options.higherValueBias/value
       }
       let grid = []
       for (let i = 0; i < size; i++) {
@@ -338,20 +337,15 @@
           left: player.x - 1 < 0 ? 0 : 1,
           right: player.x + 1 >= grid.length ? 0 : 1
         }
-        let cellUp =    grid[player.y-1]?.[player.x]*options.lessValueBias
-        let cellDown =  grid[player.y+1]?.[player.x]*options.lessValueBias
-        let cellLeft =  grid[player.y]?.[player.x-1]*options.lessValueBias
-        let cellRight = grid[player.y]?.[player.x+1]*options.lessValueBias
+        let cellUp =    grid[player.y-1]?.[player.x]
+        let cellDown =  grid[player.y+1]?.[player.x]
+        let cellLeft =  grid[player.y]?.[player.x-1]
+        let cellRight = grid[player.y]?.[player.x+1]
 
-        bias.up    *= defaultVal(1/cellUp   , options.emptyValueBias)
-        bias.down  *= defaultVal(1/cellDown , options.emptyValueBias)
-        bias.left  *= defaultVal(1/cellLeft , options.emptyValueBias)
-        bias.right *= defaultVal(1/cellRight, options.emptyValueBias)
-
-        bias.up = Math.max(0,bias.up)
-        bias.down = Math.max(0,bias.down)
-        bias.left = Math.max(0,bias.left)
-        bias.right = Math.max(0,bias.right)
+        bias.up    = Math.max(0, bias.up * createBias(cellUp))
+        bias.down  = Math.max(0, bias.down * createBias(cellDown))
+        bias.left  = Math.max(0, bias.left * createBias(cellLeft))
+        bias.right = Math.max(0, bias.right * createBias(cellRight))
         
         let total = bias.up + bias.down + bias.left + bias.right
         bias.up /= total
@@ -363,7 +357,14 @@
         bias.left += bias.down
         bias.right += bias.left
         let random = Math.random()
-        grid[player.y][player.x]++;
+        let currentNumber = grid[player.y][player.x]
+        if (currentNumber == "solid") {
+          // do nothing for now
+        } else if (currentNumber+1 >= options.minSolid) {
+          grid[player.y][player.x] = "solid"
+        } else {
+          grid[player.y][player.x]++
+        }
         if (random < bias.up) {
           player.y -= 1
         } else if (random < bias.down) {
@@ -374,13 +375,16 @@
           player.x += 1
         }
       }
+      grid[player.y][player.x] = "solid"
       return grid
     }
     function load() {
-      loadLevel(generateLevel(7,{
-        iter: 100,
-        lessValueBias: 1000,
-        emptyValueBias: 1/10000,
+      loadLevel(generateLevel(5,{
+        iter: 80,
+        higherValueBias: 1, // higher means higher values
+        emptyValueBias: 1/1000,  // lower means bias against empty values
+        repeatSolidBias: 1,
+        minSolid: 9,
       }),0,0)
     }
     load()
