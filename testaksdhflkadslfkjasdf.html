@@ -380,11 +380,11 @@
     }
     function load() {
       loadLevel(generateLevel(5,{
-        iter: 100000,
-        lowValueAttraction: 1,
-        emptyValueAttraction: 1,
-        solidAttraction: 1000,
-        minSolid: 9,
+        iter: 50,
+        lowValueAttraction: 1/100,
+        emptyValueAttraction: 100,
+        solidAttraction: 10,
+        minSolid: 5,
       }),0,0)
     }
     load()
