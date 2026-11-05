@@ -92,21 +92,44 @@
     </div>
   </div>
   <script>
-    class GameSimulator {
-      constructor (grid, x, y) {
+    class SimulatedState() {
+      constructor(grid, x, y, moves) {
         this.grid = grid
         this.x = x
         this.y = y
+        this.moves = moves
       }
       canMove(x, y) {
-        
+        let newX = this.x + x
+        let newY = this.y + y
+        return newX >= 0 && newX < this.grid.length &&
+        newY >= 0 && newY < this.grid.length &&
+        this.grid[this.y][this.x] != 0
       }
-      move(x,y) {
-
+      move(x, y) {
+        if (!this.canMove(x,y)) return false
+        grid[this.y][this.x]--
+        this.x += x
+        this.y += y
+        this.moves++
+        return true
       }
+      undoMove(x, y) {
+        this.x -= x
+        this.y -= y
+        grid[this.y][this.x]++
+        this.moves--
+      }
+    }
+    class SimulatedGame() {
+      constructor(grid, x, y) {
+        this.grid = grid.map(a=>[...a])
+        this.x = x
+        this.y = y
+        this.state = new SimulatedState(this.grid, x, y, 0)
+      }
+      solve() {
 
-      findOptimalSolutions(grid) {
-        
       }
     }
   </script>
