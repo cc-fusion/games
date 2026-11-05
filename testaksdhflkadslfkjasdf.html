@@ -4,32 +4,105 @@
   <meta charset="UTF-8">
   <title>Document</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
     body {
+      margin: 0;
       width: 100%;
       height: 100%;
-      background-color: #000000;
+      overflow: hidden;
     }
-    canvas {
-      width: 100vmin;
-      height: 100vmin;
-      background-color: #000000;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    #application {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100dvh;
+      padding: 12px;
+      background: #000;
+    }
+
+    #canvas {
+      display: block;
+      width: min(100%, calc(100dvh - 80px));
+      height: auto;
+      aspect-ratio: 1 / 1;
+      flex: 0 1 auto;
+      background: #000;
+      border: 1px solid #222;
+    }
+
+    #status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: min(100%, calc(100dvh - 80px));
+      flex: 0 0 auto;
+      padding: 8px 0;
+      background: #000;
+    }
+
+    #status-bar button {
+      padding: 5px 8px;
+      border: 1px solid #333;
+      border-radius: 2px;
+      background: transparent;
+      color: #ccc;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #status-bar button.highlighted {
+      box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.6);
+    }
+
+
+    #status-bar button:hover {
+      color: #fff;
+      border-color: #777;
+    }
+
+    #status-text {
+      margin: 0;
+      color: #888;
+      font: 12px monospace;
+      white-space: nowrap;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
+  <div id="application">
+    <canvas id="canvas"></canvas>
+    <div id="status-bar">
+      <button id="btn-reset">Reset</button>
+      <button id="btn-new-lvl">Generate new level</button>
+      <pre id="status-text">Loading...</pre>
+    </div>
+  </div>
   <script>
     let canvas = document.getElementById("canvas")
     let ctx = canvas.getContext("2d")
+    let statusText = document.getElementById("status-text")
+    let btnReset = document.getElementById("btn-reset")
+    let btnNewLevel = document.getElementById("btn-new-lvl")
     canvas.width = 2000
     canvas.height = 2000
     let state = {
       x: 0,
       y: 0,
+      moves: 0,
       initState: null,
       level: null,
       needsDraw: true,
@@ -74,6 +147,9 @@
         loadLevel(grid, startX, startY)
       }
       state.needsDraw = true
+      state.moves = 0
+      btnReset.classList.remove("highlighted")
+      btnNewLevel.classList.remove("highlighted")
     }
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -91,7 +167,7 @@
           let posY = state.rendering.offset + state.rendering.cellSpacing*(y+0.5)
           let size = state.rendering.cellSize
           ctx.beginPath()
-          ctx.roundRect(posX-size/2,posY-size/2,size,size, 100)
+          ctx.roundRect(posX-size/2,posY-size/2,size,size, canvas.width/2000*100)
           if (currentNumber == "solid") {
             ctx.fillStyle = config.colors.solid
           } else {
@@ -123,6 +199,16 @@
       if (state.level[newY][newX] == 0) return false
       return true
     }
+    function isEmpty() {
+      let total = 0
+      for (let row of state.level) {
+        for (let x of row) {
+          total += x
+          if (total > 1) return false
+        }
+      }
+      return true
+    }
     function isStuck() {
       return !canMove(0,1) && !canMove(0,-1) && !canMove(1,0) && !canMove(-1,0)
     }
@@ -138,6 +224,7 @@
       state.level[state.y][state.x] = newBlock
       state.x += x
       state.y += y
+      state.moves++
       state.needsDraw = true
       return true
     }
@@ -153,6 +240,13 @@
         if (key == "arrowleft") move(-1,0)
         if (key == "arrowright") move(1,0)
         if (key == "r") state.reset()
+        if (isStuck()) {
+          if (isEmpty()) {
+            btnNewLevel.classList.add("highlighted")
+          } else {
+            btnReset.classList.add("highlighted")
+          }
+        }
       })
       addEventListener("keyup", (e) => {
         keys[e.key.toLowerCase()] = false
@@ -166,6 +260,12 @@
       })
       addEventListener("mouseup", (e) => {
         mouse.down = false
+      })
+      btnReset.addEventListener("click", (e) => {
+        state.reset()
+      })
+      btnNewLevel.addEventListener("click", (e) => {
+        load()
       })
     }
     function defaultVal(v, d) {
@@ -232,11 +332,14 @@
       }
       return grid
     }
-    loadLevel(generateLevel(20,{
-      iter: 500,
-      lessValueBias: 999,
-      emptyValueBias: 999,
-    }),0,0)
+    function load() {
+      loadLevel(generateLevel(7,{
+        iter: 100,
+        lessValueBias: 1000,
+        emptyValueBias: 1/10000,
+      }),0,0)
+    }
+    load()
     initListeners()
     requestAnimationFrame(animate)
   </script>
