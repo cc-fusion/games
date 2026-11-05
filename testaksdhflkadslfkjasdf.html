@@ -312,14 +312,14 @@
       let options = {
         iter: 10,
         lowValueAttraction: 0.1,
-        emptyValueBias: 1,
-        repeatSolidBias: 1,
+        emptyValueAttraction: 1,
+        solidAttraction: 1,
         minSolid: 9,
         ...overrideOptions
       }
       let createBias = (value) => {
-        if (value == "solid") return options.repeatSolidBias
-        if (value == null || value == 0) return options.emptyValueBias
+        if (value == "solid") return options.solidAttraction
+        if (value == null || value == 0) return options.emptyValueAttraction
         return 1/(value*options.lowValueAttraction)
       }
       let grid = []
@@ -380,10 +380,10 @@
     }
     function load() {
       loadLevel(generateLevel(5,{
-        iter: 80,
+        iter: 100000,
         lowValueAttraction: 1,
-        emptyValueBias: 1/100000,
-        repeatSolidBias: 1,
+        emptyValueAttraction: 1,
+        solidAttraction: 1000,
         minSolid: 9,
       }),0,0)
     }
