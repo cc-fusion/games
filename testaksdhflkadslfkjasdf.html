@@ -63,14 +63,17 @@
     function loadLevel(grid, startX, startY) {
       state.x = startX
       state.y = startY
-      state.level = grid
+      state.level = grid.map(a=>[...a])
 
       state.rendering.offset = canvas.width * config.edgePadding/2
       state.rendering.width = canvas.width * (1-config.edgePadding)
       state.rendering.cellSize = state.rendering.width/grid.length*(1-config.padding*2)
       state.rendering.cellSpacing = state.rendering.width/grid.length
       
-      state.reset = ()=>loadLevel(grid, startX, startY)
+      state.reset = ()=>{
+        loadLevel(grid, startX, startY)
+      }
+      state.needsDraw = true
     }
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -120,6 +123,9 @@
       if (state.level[newY][newX] == 0) return false
       return true
     }
+    function isStuck() {
+      return !canMove(0,1) && !canMove(0,-1) && !canMove(1,0) && !canMove(-1,0)
+    }
     function move(x,y) {
       if (!canMove(x,y)) return false
       let currentBlock = state.level[state.y][state.x]
@@ -146,6 +152,7 @@
         if (key == "arrowdown") move(0,1)
         if (key == "arrowleft") move(-1,0)
         if (key == "arrowright") move(1,0)
+        if (key == "r") state.reset()
       })
       addEventListener("keyup", (e) => {
         keys[e.key.toLowerCase()] = false
@@ -161,10 +168,15 @@
         mouse.down = false
       })
     }
+    function defaultVal(v, d) {
+      if (!isFinite(v) || isNaN(v) || d == null || d == undefined) return d
+      return v
+    }
     function generateLevel(size, overrideOptions={}) {
       let options = {
         iter: 10,
-        lessValueBias: 1,
+        lessValueBias: 0.1,
+        emptyValueBias: 1,
         ...overrideOptions
       }
       let grid = []
@@ -175,23 +187,28 @@
         }
       }
       let player = {x: 0, y: 0}
-      let i = 0
-      while (i < options.iter) {
+      for (let i = 0; i < options.iter; i++) {
         let bias = {
           up: player.y - 1 < 0 ? 0 : 1,
           down: player.y + 1 >= grid.length ? 0 : 1,
           left: player.x - 1 < 0 ? 0 : 1,
           right: player.x + 1 >= grid.length ? 0 : 1
         }
-        let cellUp = grid[player.y-1]?.[player.x] || 1
-        let cellDown = grid[player.y+1]?.[player.x] || 1
-        let cellLeft = grid[player.y]?.[player.x-1] || 1
-        let cellRight = grid[player.y]?.[player.x+1] || 1
-        bias.up    = bias.up    / cellUp    * options.lessValueBias
-        bias.down  = bias.down  / cellDown  * options.lessValueBias
-        bias.left  = bias.left  / cellLeft  * options.lessValueBias
-        bias.right = bias.right / cellRight * options.lessValueBias
+        let cellUp =    grid[player.y-1]?.[player.x]*options.lessValueBias
+        let cellDown =  grid[player.y+1]?.[player.x]*options.lessValueBias
+        let cellLeft =  grid[player.y]?.[player.x-1]*options.lessValueBias
+        let cellRight = grid[player.y]?.[player.x+1]*options.lessValueBias
 
+        bias.up    *= defaultVal(1/cellUp   , options.emptyValueBias)
+        bias.down  *= defaultVal(1/cellDown , options.emptyValueBias)
+        bias.left  *= defaultVal(1/cellLeft , options.emptyValueBias)
+        bias.right *= defaultVal(1/cellRight, options.emptyValueBias)
+
+        bias.up = Math.max(0,bias.up)
+        bias.down = Math.max(0,bias.down)
+        bias.left = Math.max(0,bias.left)
+        bias.right = Math.max(0,bias.right)
+        
         let total = bias.up + bias.down + bias.left + bias.right
         bias.up /= total
         bias.down /= total
@@ -202,28 +219,23 @@
         bias.left += bias.down
         bias.right += bias.left
         let random = Math.random()
+        grid[player.y][player.x]++;
         if (random < bias.up) {
-          grid[player.y][player.x]++
           player.y -= 1
-          i++
         } else if (random < bias.down) {
-          grid[player.y][player.x]++
           player.y += 1
-          i++
         } else if (random < bias.left) {
-          grid[player.y][player.x]++
           player.x -= 1
-          i++
         } else {
-          grid[player.y][player.x]++
           player.x += 1
-          i++
         }
       }
       return grid
     }
-    loadLevel(generateLevel(7,{
-      iter: 100
+    loadLevel(generateLevel(20,{
+      iter: 500,
+      lessValueBias: 999,
+      emptyValueBias: 999,
     }),0,0)
     initListeners()
     requestAnimationFrame(animate)
