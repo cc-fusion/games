@@ -95,290 +95,881 @@
     </div>
   </div>
   <script>
-    // ==========================================
-    // SOLVER IMPLEMENTATION
-    // ==========================================
 
-    const DIRS = [
-      { dx: 0,  dy: -1, name: "up" },
-      { dx: 0,  dy: 1,  name: "down" },
-      { dx: -1, dy: 0,  name: "left" },
-      { dx: 1,  dy: 0,  name: "right" }
-    ];
+    // ==========================================
+// INLINE WEB WORKER SOLVER + AUTO-PLAY
+// ==========================================
+// S = find an optimal solution
+// F = find the first solution quickly (not necessarily optimal)
+//
+// Requires the existing game globals: state, statusText, move(), hasWon(),
+// and btnNewLevel. The page's CSP must allow blob workers.
 
-    function solveLevel(initialGrid, startX, startY) {
-      const N = initialGrid.length;
-      // Convert grid to integer representation for speed:
-      // -1 = "solid", 0 = empty, >0 = number
-      const grid = initialGrid.map(row =>
-        row.map(cell => (cell === "solid" ? -1 : cell))
+function solverWorkerMain() {
+  "use strict";
+
+  const DIRS = [
+    { dx: 0,  dy: -1, name: "up" },
+    { dx: 0,  dy: 1,  name: "down" },
+    { dx: -1, dy: 0,  name: "left" },
+    { dx: 1,  dy: 0,  name: "right" }
+  ];
+
+  self.onmessage = (event) => {
+    if (!event.data || event.data.type !== "solve") return;
+
+    const { initialGrid, startX, startY } = event.data;
+    const mode = event.data.mode === "fast" ? "fast" : "optimal";
+    const seedSolution = event.data.seedSolution;
+    const t0 = performance.now();
+
+    self.postMessage({
+      type: "progress",
+      message: "Worker started; preparing the search.",
+      important: true,
+      nodes: 0
+    });
+
+    try {
+      const result = solveLevel(
+        initialGrid,
+        startX,
+        startY,
+        mode,
+        seedSolution
       );
 
-      let remainingSteps = 0;
-      let maxVal = 0;
-      for (let y = 0; y < N; y++) {
-        for (let x = 0; x < N; x++) {
-          if (grid[y][x] > 0) {
-            remainingSteps += grid[y][x];
-            if (grid[y][x] > maxVal) maxVal = grid[y][x];
-          }
+      self.postMessage({
+        type: "done",
+        ...result,
+        elapsedMs: performance.now() - t0
+      });
+    } catch (error) {
+      self.postMessage({
+        type: "error",
+        error: error && error.stack ? error.stack : String(error)
+      });
+    }
+  };
+
+  function solveLevel(initialGrid, startX, startY, mode, seedSolution) {
+    const N = initialGrid.length;
+
+    // -1 = solid, 0 = empty, >0 = numbered tile
+    const grid = initialGrid.map(row =>
+      row.map(cell => (cell === "solid" ? -1 : cell))
+    );
+
+    let remainingSteps = 0;
+    let maxVal = 0;
+
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        if (grid[y][x] > 0) {
+          remainingSteps += grid[y][x];
+          if (grid[y][x] > maxVal) maxVal = grid[y][x];
         }
       }
+    }
 
-      if (remainingSteps === 0) return [];
+    if (remainingSteps === 0) {
+      return { solution: [], fastSolution: [] };
+    }
 
-      // 1. ZOBRIST HASHING SETUP (64-bit BigInt)
-      // Allows O(1) incremental state hashing to detect loops and transpositions
-      const rand64 = () =>
-        (BigInt(Math.floor(Math.random() * 0x100000000)) << 32n) |
-        BigInt(Math.floor(Math.random() * 0x100000000));
+    const totalNumberSteps = remainingSteps;
 
-      const zobristCell = Array.from({ length: N * N }, () =>
-        Array.from({ length: maxVal + 1 }, () => rand64())
+    let searchNodes = 0;
+    let searchPhase = "initial search";
+    let searchBudget = "unlimited";
+    let nextProgressAt = Date.now() + 1000;
+
+    function postProgress(message, important = false) {
+      self.postMessage({
+        type: "progress",
+        message,
+        important,
+        nodes: searchNodes,
+        phase: searchPhase,
+        budget: searchBudget
+      });
+    }
+
+    function maybePostNodeProgress() {
+      // Check the clock once every 16,384 DFS states.
+      if ((searchNodes & 0x3fff) !== 0) return;
+
+      const now = Date.now();
+      if (now < nextProgressAt) return;
+
+      nextProgressAt = now + 1000;
+      postProgress(
+        `${searchPhase}: ${searchNodes.toLocaleString()} DFS states examined` +
+          (searchBudget === "unlimited"
+            ? "."
+            : ` (solid-move budget ${searchBudget}).`)
       );
-      const zobristPlayer = Array.from({ length: N * N }, () => rand64());
+    }
 
-      let currentHash = zobristPlayer[startY * N + startX];
-      for (let y = 0; y < N; y++) {
-        for (let x = 0; x < N; x++) {
-          if (grid[y][x] > 0) {
-            currentHash ^= zobristCell[y * N + x][grid[y][x]];
-          }
+    // ---------- ZOBRIST HASHING ----------
+    const rand64 = () =>
+      (BigInt(Math.floor(Math.random() * 0x100000000)) << 32n) |
+      BigInt(Math.floor(Math.random() * 0x100000000));
+
+    const zobristCell = Array.from({ length: N * N }, () =>
+      Array.from({ length: maxVal + 1 }, () => rand64())
+    );
+    const zobristPlayer = Array.from({ length: N * N }, () => rand64());
+
+    let currentHash = zobristPlayer[startY * N + startX];
+
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        if (grid[y][x] > 0) {
+          currentHash ^= zobristCell[y * N + x][grid[y][x]];
         }
       }
+    }
 
-      const visitedStates = new Set();
+    // hash -> largest solid-move budget with which this state was explored
+    let failedBudget = new Map();
 
-      // 2. LOCAL FLOW CONSERVATION & DEGREE PRUNING
-      function isCellLocallyValid(x, y, px, py) {
-        if (x < 0 || x >= N || y < 0 || y >= N) return true;
-        const val = grid[y][x];
-        if (val <= 0) return true; // 0 (empty) or -1 (solid) are always valid
+    // ---------- LOCAL PRUNING ----------
+    function isCellLocallyValid(x, y, px, py) {
+      if (x < 0 || x >= N || y < 0 || y >= N) return true;
 
-        const isPlayerHere = (x === px && y === py);
-        const reqIn = isPlayerHere ? val - 1 : val; // Future entries needed
-        const reqOut = val;                         // Future exits needed
+      const val = grid[y][x];
+      if (val <= 0) return true;
 
-        let maxInFromNeighbors = 0;
-        let maxOutToNeighbors = 0;
-        let validNeighborCount = 0;
-        let singleNeighborVal = 0;
+      const isPlayerHere = x === px && y === py;
+      const reqIn = isPlayerHere ? val - 1 : val;
+      const reqOut = val;
 
-        for (let i = 0; i < 4; i++) {
-          const nx = x + DIRS[i].dx;
-          const ny = y + DIRS[i].dy;
-          if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
+      let maxInFromNeighbors = 0;
+      let maxOutToNeighbors = 0;
+      let validNeighborCount = 0;
+      let singleNeighborVal = 0;
 
-          const nVal = grid[ny][nx];
-          if (nVal === 0) continue;
-          if (nVal === -1) return true; // Adjacent to a "solid" tile -> infinite capacity
+      for (let i = 0; i < 4; i++) {
+        const nx = x + DIRS[i].dx;
+        const ny = y + DIRS[i].dy;
 
-          validNeighborCount++;
-          singleNeighborVal = nVal;
+        if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
 
-          const isPlayerAtNeighbor = (nx === px && ny === py);
-          const eOut = nVal;
-          const eIn = isPlayerAtNeighbor ? nVal - 1 : nVal;
+        const nVal = grid[ny][nx];
+        if (nVal === 0) continue;
+        if (nVal === -1) return true;
 
-          maxInFromNeighbors += eOut;
-          maxOutToNeighbors += eIn;
-        }
+        validNeighborCount++;
+        singleNeighborVal = nVal;
 
-        // Dead-end check: if (x, y) only has 1 valid neighbor and player is not on (x, y),
-        // all visits to (x, y) must bounce back and forth from that single neighbor,
-        // which requires that neighbor to have at least (val + 1) exits left.
-        if (validNeighborCount === 1 && !isPlayerHere && singleNeighborVal < val + 1) {
-          return false;
-        }
+        const isPlayerAtNeighbor = nx === px && ny === py;
+        const eOut = nVal;
+        const eIn = isPlayerAtNeighbor ? nVal - 1 : nVal;
 
-        return maxInFromNeighbors >= reqIn && maxOutToNeighbors >= reqOut;
+        maxInFromNeighbors += eOut;
+        maxOutToNeighbors += eIn;
       }
 
-      // Check a cell and its immediate neighborhood after a move
-      function isNeighborhoodValid(x1, y1, x2, y2, px, py) {
-        if (!isCellLocallyValid(x1, y1, px, py)) return false;
-        if (!isCellLocallyValid(x2, y2, px, py)) return false;
-        for (let i = 0; i < 4; i++) {
-          if (!isCellLocallyValid(x1 + DIRS[i].dx, y1 + DIRS[i].dy, px, py)) return false;
-          if (!isCellLocallyValid(x2 + DIRS[i].dx, y2 + DIRS[i].dy, px, py)) return false;
-        }
-        return true;
-      }
-
-      // 3. INCREMENTAL CONNECTIVITY CHECK (BFS FLOOD FILL)
-      // Pre-allocated typed arrays to avoid garbage collection overhead during search
-      const bfsQueue = new Int32Array(N * N);
-      const visitedGrid = new Int32Array(N * N);
-      let bfsToken = 0;
-
-      function isGraphConnected(startX, startY) {
-        let totalNumberedCells = 0;
-        for (let y = 0; y < N; y++) {
-          for (let x = 0; x < N; x++) {
-            if (grid[y][x] > 0) totalNumberedCells++;
-          }
-        }
-        if (totalNumberedCells === 0) return true;
-
-        bfsToken++;
-        let head = 0, tail = 0;
-        const startIdx = startY * N + startX;
-        bfsQueue[tail++] = startIdx;
-        visitedGrid[startIdx] = bfsToken;
-
-        let reachedNumberedCells = 0;
-        let reachedSolid = false;
-
-        while (head < tail) {
-          const curr = bfsQueue[head++];
-          const cx = curr % N;
-          const cy = (curr / N) | 0;
-          const val = grid[cy][cx];
-
-          if (val > 0) reachedNumberedCells++;
-          else if (val === -1) reachedSolid = true;
-
-          for (let i = 0; i < 4; i++) {
-            const nx = cx + DIRS[i].dx;
-            const ny = cy + DIRS[i].dy;
-            if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
-            const nIdx = ny * N + nx;
-            if (visitedGrid[nIdx] !== bfsToken && grid[ny][nx] !== 0) {
-              visitedGrid[nIdx] = bfsToken;
-              bfsQueue[tail++] = nIdx;
-            }
-          }
-        }
-
-        // All remaining numbered tiles AND at least one "solid" tile must be reachable
-        return reachedNumberedCells === totalNumberedCells && reachedSolid;
-      }
-
-      // Count non-zero neighbors for Warnsdorff's move ordering heuristic
-      function countActiveNeighbors(x, y) {
-        let count = 0;
-        for (let i = 0; i < 4; i++) {
-          const nx = x + DIRS[i].dx;
-          const ny = y + DIRS[i].dy;
-          if (nx >= 0 && nx < N && ny >= 0 && ny < N && grid[ny][nx] !== 0) {
-            count++;
-          }
-        }
-        return count;
-      }
-
-      const solutionPath = [];
-
-      // 4. BACKTRACKING DEPTH-FIRST SEARCH
-      function dfs(x, y) {
-        if (remainingSteps === 0) return true; // All numbers cleared!
-
-        if (visitedStates.has(currentHash)) return false;
-        visitedStates.add(currentHash);
-
-        // Generate and score valid moves (Most-Constrained First heuristic)
-        const candidates = [];
-        for (let i = 0; i < 4; i++) {
-          const nx = x + DIRS[i].dx;
-          const ny = y + DIRS[i].dy;
-          if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
-          if (grid[ny][nx] === 0) continue;
-
-          // Prefer numbered cells with fewer neighbors over "solid" tiles
-          const isSolid = grid[ny][nx] === -1;
-          const score = (isSolid ? 100 : 0) + countActiveNeighbors(nx, ny) * 10 + grid[ny][nx];
-          candidates.push({ dir: DIRS[i], nx, ny, score });
-        }
-        candidates.sort((a, b) => a.score - b.score);
-
-        const oldVal = grid[y][x];
-        const currIdx = y * N + x;
-
-        for (let i = 0; i < candidates.length; i++) {
-          const { dir, nx, ny } = candidates[i];
-          const nextIdx = ny * N + nx;
-          const savedHash = currentHash;
-
-          // Apply move
-          currentHash ^= zobristPlayer[currIdx] ^ zobristPlayer[nextIdx];
-          if (oldVal > 0) {
-            grid[y][x] = oldVal - 1;
-            remainingSteps--;
-            currentHash ^= zobristCell[currIdx][oldVal] ^ zobristCell[currIdx][oldVal - 1];
-          }
-
-          // Check pruning conditions before recursing
-          let possible = true;
-          if (remainingSteps > 0) {
-            if (!isNeighborhoodValid(x, y, nx, ny, nx, ny)) {
-              possible = false;
-            } else if (oldVal === 1 && !isGraphConnected(nx, ny)) {
-              // Only run BFS flood-fill when a tile actually drops to 0!
-              possible = false;
-            }
-          }
-
-          if (possible) {
-            solutionPath.push(dir);
-            if (dfs(nx, ny)) return true;
-            solutionPath.pop();
-          }
-
-          // Undo move (Backtrack)
-          if (oldVal > 0) {
-            grid[y][x] = oldVal;
-            remainingSteps++;
-          }
-          currentHash = savedHash;
-        }
-
+      if (
+        validNeighborCount === 1 &&
+        !isPlayerHere &&
+        singleNeighborVal < val + 1
+      ) {
         return false;
       }
 
-      // Initial sanity check before searching
-      if (!isGraphConnected(startX, startY)) return null;
-      return dfs(startX, startY) ? solutionPath : null;
+      return maxInFromNeighbors >= reqIn && maxOutToNeighbors >= reqOut;
     }
 
-    // ==========================================
-    // AUTO-PLAY INTEGRATION (Press 'S' to Solve)
-    // ==========================================
-    let autoPlayTimer = null;
+    function isNeighborhoodValid(x1, y1, x2, y2, px, py) {
+      if (!isCellLocallyValid(x1, y1, px, py)) return false;
+      if (!isCellLocallyValid(x2, y2, px, py)) return false;
 
-    window.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() === "s") {
-        if (autoPlayTimer) {
-          clearInterval(autoPlayTimer);
-          autoPlayTimer = null;
+      for (let i = 0; i < 4; i++) {
+        if (
+          !isCellLocallyValid(
+            x1 + DIRS[i].dx,
+            y1 + DIRS[i].dy,
+            px,
+            py
+          )
+        ) {
+          return false;
         }
 
-        const t0 = performance.now();
-        const solution = solveLevel(state.level, state.x, state.y);
-        const t1 = performance.now();
-
-        if (!solution) {
-          console.warn(`No solution found from current state (${(t1 - t0).toFixed(2)} ms).`);
-          statusText.innerText = "Moves: " + state.moves + " (Unsolvable!)";
-          return;
+        if (
+          !isCellLocallyValid(
+            x2 + DIRS[i].dx,
+            y2 + DIRS[i].dy,
+            px,
+            py
+          )
+        ) {
+          return false;
         }
-
-        console.log(`Solved in ${(t1 - t0).toFixed(2)} ms! Steps remaining: ${solution.length}`);
-
-        let step = 0;
-        autoPlayTimer = setInterval(() => {
-          if (step >= solution.length) {
-            clearInterval(autoPlayTimer);
-            autoPlayTimer = null;
-            return;
-          }
-          const { dx, dy } = solution[step++];
-          move(dx, dy);
-          if (hasWon()) {
-            btnNewLevel.classList.add("highlighted");
-          }
-        }, 80); // 80ms per step animation
       }
+
+      return true;
+    }
+
+    // ---------- CONNECTIVITY ----------
+    const bfsQueue = new Int32Array(N * N);
+    const visitedGrid = new Int32Array(N * N);
+    let bfsToken = 0;
+
+    function isGraphConnected(sx, sy) {
+      let totalNumberedCells = 0;
+
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+          if (grid[y][x] > 0) totalNumberedCells++;
+        }
+      }
+
+      if (totalNumberedCells === 0) return true;
+
+      bfsToken++;
+
+      let head = 0;
+      let tail = 0;
+      const startIdx = sy * N + sx;
+
+      bfsQueue[tail++] = startIdx;
+      visitedGrid[startIdx] = bfsToken;
+
+      let reachedNumberedCells = 0;
+      let reachedSolid = false;
+
+      while (head < tail) {
+        const curr = bfsQueue[head++];
+        const cx = curr % N;
+        const cy = (curr / N) | 0;
+        const val = grid[cy][cx];
+
+        if (val > 0) reachedNumberedCells++;
+        else if (val === -1) reachedSolid = true;
+
+        for (let i = 0; i < 4; i++) {
+          const nx = cx + DIRS[i].dx;
+          const ny = cy + DIRS[i].dy;
+
+          if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
+
+          const nIdx = ny * N + nx;
+          if (visitedGrid[nIdx] !== bfsToken && grid[ny][nx] !== 0) {
+            visitedGrid[nIdx] = bfsToken;
+            bfsQueue[tail++] = nIdx;
+          }
+        }
+      }
+
+      return reachedNumberedCells === totalNumberedCells && reachedSolid;
+    }
+
+    function countActiveNeighbors(x, y) {
+      let count = 0;
+
+      for (let i = 0; i < 4; i++) {
+        const nx = x + DIRS[i].dx;
+        const ny = y + DIRS[i].dy;
+
+        if (
+          nx >= 0 &&
+          nx < N &&
+          ny >= 0 &&
+          ny < N &&
+          grid[ny][nx] !== 0
+        ) {
+          count++;
+        }
+      }
+
+      return count;
+    }
+
+    const solutionPath = [];
+
+    // Total moves = sum of numbered tiles + solid-tile moves.
+    // `budget` limits how many solid-tile moves may still be used.
+    function dfs(x, y, budget) {
+      if (remainingSteps === 0) return true;
+
+      searchNodes++;
+      maybePostNodeProgress();
+
+      const prev = failedBudget.get(currentHash);
+      if (prev !== undefined && prev >= budget) return false;
+
+      failedBudget.set(currentHash, budget);
+
+      const oldVal = grid[y][x];
+      const cost = oldVal > 0 ? 0 : 1;
+      const newBudget = budget - cost;
+
+      if (newBudget < 0) return false;
+
+      const candidates = [];
+
+      for (let i = 0; i < 4; i++) {
+        const nx = x + DIRS[i].dx;
+        const ny = y + DIRS[i].dy;
+
+        if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
+        if (grid[ny][nx] === 0) continue;
+
+        const isSolid = grid[ny][nx] === -1;
+        const score =
+          (isSolid ? 100 : 0) +
+          countActiveNeighbors(nx, ny) * 10 +
+          grid[ny][nx];
+
+        candidates.push({ dir: DIRS[i], nx, ny, score });
+      }
+
+      candidates.sort((a, b) => a.score - b.score);
+
+      const currIdx = y * N + x;
+
+      for (let i = 0; i < candidates.length; i++) {
+        const { dir, nx, ny } = candidates[i];
+        const nextIdx = ny * N + nx;
+        const savedHash = currentHash;
+
+        // Apply move.
+        currentHash ^= zobristPlayer[currIdx] ^ zobristPlayer[nextIdx];
+
+        if (oldVal > 0) {
+          grid[y][x] = oldVal - 1;
+          remainingSteps--;
+          currentHash ^=
+            zobristCell[currIdx][oldVal] ^
+            zobristCell[currIdx][oldVal - 1];
+        }
+
+        let possible = true;
+
+        if (remainingSteps > 0) {
+          if (!isNeighborhoodValid(x, y, nx, ny, nx, ny)) {
+            possible = false;
+          } else if (oldVal === 1 && !isGraphConnected(nx, ny)) {
+            possible = false;
+          }
+        }
+
+        if (possible) {
+          solutionPath.push(dir);
+
+          if (dfs(nx, ny, newBudget)) return true;
+
+          solutionPath.pop();
+        }
+
+        // Undo move.
+        if (oldVal > 0) {
+          grid[y][x] = oldVal;
+          remainingSteps++;
+        }
+
+        currentHash = savedHash;
+      }
+
+      return false;
+    }
+
+    function normalizeSeedSolution(candidate) {
+      if (!Array.isArray(candidate)) return null;
+
+      const normalized = [];
+
+      for (const step of candidate) {
+        if (!step) return null;
+
+        const dir = DIRS.find(
+          item => item.dx === step.dx && item.dy === step.dy
+        );
+
+        if (!dir) return null;
+        normalized.push(dir);
+      }
+
+      // A valid solution must include at least the numbered-tile moves.
+      if (normalized.length < totalNumberSteps) return null;
+
+      return normalized;
+    }
+
+    postProgress("Checking starting-board connectivity.", true);
+
+    if (!isGraphConnected(startX, startY)) {
+      postProgress("The starting board is disconnected; no solution found.", true);
+      return { solution: null, fastSolution: null };
+    }
+
+    const initialHash = currentHash;
+
+    // Fast mode returns immediately after the first solution is found.
+    if (mode === "fast") {
+      failedBudget = new Map();
+      searchPhase = "fast first-solution search";
+      searchBudget = "unlimited";
+
+      postProgress(
+        "Searching for the first solution; skipping optimality search.",
+        true
+      );
+
+      if (!dfs(startX, startY, Infinity)) {
+        postProgress("Fast search exhausted; no solution found.", true);
+        return { solution: null, fastSolution: null };
+      }
+
+      const fastSolution = solutionPath.slice();
+
+      postProgress(
+        `Found a ${fastSolution.length}-move solution; returning without optimization.`,
+        true
+      );
+
+      return { solution: fastSolution, fastSolution };
+    }
+
+    // Optimal mode can reuse a previously cached fast path as an upper bound.
+    let fastSolution = normalizeSeedSolution(seedSolution);
+    let best;
+
+    if (fastSolution) {
+      best = fastSolution.slice();
+
+      postProgress(
+        `Using a cached ${best.length}-move solution as the optimization upper bound.`,
+        true
+      );
+    } else {
+      // Find any solution first. This is also the non-optimal solution cached
+      // for later F-key requests.
+      failedBudget = new Map();
+      searchPhase = "initial search";
+      searchBudget = "unlimited";
+
+      postProgress(
+        "Searching for an initial solution (unlimited solid-move budget).",
+        true
+      );
+
+      if (!dfs(startX, startY, Infinity)) {
+        postProgress("Initial search exhausted; no solution found.", true);
+        return { solution: null, fastSolution: null };
+      }
+
+      fastSolution = solutionPath.slice();
+      best = fastSolution.slice();
+    }
+
+    const upperBoundExtra = best.length - totalNumberSteps;
+
+    searchPhase = "solid-move budget minimization";
+    postProgress(
+      `Found an initial solution with ${best.length} moves; minimizing its ${upperBoundExtra} extra solid-tile move(s).`,
+      true
+    );
+
+    if (upperBoundExtra <= 0) {
+      postProgress(
+        "The solution has no extra solid-tile moves and is already optimal.",
+        true
+      );
+
+      return { solution: best, fastSolution };
+    }
+
+    let foundShorter = false;
+
+    for (let budget = 0; budget < upperBoundExtra; budget++) {
+      searchBudget = budget;
+      postProgress(
+        `Trying solid-tile move budget ${budget} of ${upperBoundExtra - 1}.`
+      );
+
+      // Restore the initial position before each budget-limited search.
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+          grid[y][x] =
+            initialGrid[y][x] === "solid" ? -1 : initialGrid[y][x];
+        }
+      }
+
+      remainingSteps = totalNumberSteps;
+      currentHash = initialHash;
+      solutionPath.length = 0;
+      failedBudget = new Map();
+
+      if (dfs(startX, startY, budget)) {
+        best = solutionPath.slice();
+        foundShorter = true;
+
+        postProgress(
+          `Found a shorter solution with ${best.length} moves at budget ${budget}.`,
+          true
+        );
+
+        break;
+      }
+    }
+
+    if (!foundShorter) {
+      postProgress(
+        `No lower budget succeeded; returning the ${best.length}-move solution.`,
+        true
+      );
+    }
+
+    return { solution: best, fastSolution };
+  }
+}
+
+let inlineSolverWorkerURL = null;
+let solverWorker = null;
+let autoPlayTimer = null;
+let solveRequestId = 0;
+
+// Cache up to 128 board/player starting states. Each entry can hold both
+// a first-found path and an optimal path.
+const SOLVER_CACHE_LIMIT = 128;
+const solverSolutionCache = new Map();
+
+function getInlineSolverWorkerURL() {
+  if (inlineSolverWorkerURL === null) {
+    const source = "(" + solverWorkerMain.toString() + ")();";
+    const blob = new Blob([source], { type: "text/javascript" });
+    inlineSolverWorkerURL = URL.createObjectURL(blob);
+  }
+
+  return inlineSolverWorkerURL;
+}
+
+function getSolverCacheKey(snapshot) {
+  return JSON.stringify([
+    snapshot.x,
+    snapshot.y,
+    snapshot.levelJSON
+  ]);
+}
+
+function copySolverSolution(solution) {
+  return solution.map(step => ({
+    dx: step.dx,
+    dy: step.dy
+  }));
+}
+
+function getSolverCacheEntry(key) {
+  const entry = solverSolutionCache.get(key);
+  if (!entry) return null;
+
+  // Refresh the entry's LRU position.
+  solverSolutionCache.delete(key);
+  solverSolutionCache.set(key, entry);
+
+  return entry;
+}
+
+function cacheSolverSolution(key, slot, solution) {
+  if (
+    !Array.isArray(solution) ||
+    (slot !== "fast" && slot !== "optimal")
+  ) {
+    return;
+  }
+
+  const entry = solverSolutionCache.get(key) || {
+    fast: null,
+    optimal: null
+  };
+
+  entry[slot] = copySolverSolution(solution);
+
+  // Refresh the entry's LRU position.
+  solverSolutionCache.delete(key);
+  solverSolutionCache.set(key, entry);
+
+  while (solverSolutionCache.size > SOLVER_CACHE_LIMIT) {
+    const oldestKey = solverSolutionCache.keys().next().value;
+    solverSolutionCache.delete(oldestKey);
+  }
+}
+
+function isSameSolverStartState(snapshot) {
+  return (
+    state.x === snapshot.x &&
+    state.y === snapshot.y &&
+    state.moves === snapshot.moves &&
+    JSON.stringify(state.level) === snapshot.levelJSON
+  );
+}
+
+function startAutoPlay(solution, requestId, snapshot) {
+  if (!isSameSolverStartState(snapshot)) {
+    console.warn("[solver] Game state changed; discarding the stale solution.");
+    return;
+  }
+
+  if (!Array.isArray(solution)) return;
+
+  if (solution.length === 0) {
+    if (hasWon()) btnNewLevel.classList.add("highlighted");
+    return;
+  }
+
+  let step = 0;
+
+  const timer = setInterval(() => {
+    if (requestId !== solveRequestId) {
+      clearInterval(timer);
+      if (autoPlayTimer === timer) autoPlayTimer = null;
+      return;
+    }
+
+    if (step >= solution.length) {
+      clearInterval(timer);
+      if (autoPlayTimer === timer) autoPlayTimer = null;
+      return;
+    }
+
+    const nextMove = solution[step++];
+    move(nextMove.dx, nextMove.dy);
+
+    if (hasWon()) {
+      btnNewLevel.classList.add("highlighted");
+      clearInterval(timer);
+      if (autoPlayTimer === timer) autoPlayTimer = null;
+    }
+  }, 80);
+
+  autoPlayTimer = timer;
+}
+
+window.addEventListener("keydown", (event) => {
+  const key = typeof event.key === "string"
+    ? event.key.toLowerCase()
+    : "";
+
+  if (event.repeat || (key !== "s" && key !== "f")) return;
+
+  const mode = key === "f" ? "fast" : "optimal";
+  const requestId = ++solveRequestId;
+
+  if (autoPlayTimer !== null) {
+    clearInterval(autoPlayTimer);
+    autoPlayTimer = null;
+  }
+
+  if (solverWorker) {
+    solverWorker.terminate();
+    solverWorker = null;
+  }
+
+  // Make a copy so the worker cannot observe later board mutations.
+  const initialGrid = state.level.map(row => row.slice());
+  const snapshot = {
+    x: state.x,
+    y: state.y,
+    moves: state.moves,
+    levelJSON: JSON.stringify(initialGrid)
+  };
+
+  const cacheKey = getSolverCacheKey(snapshot);
+  const cached = getSolverCacheEntry(cacheKey);
+
+  // Use a cached result immediately when one is available.
+  let cachedSolution = null;
+  let cachedKind = null;
+
+  if (cached) {
+    if (mode === "optimal" && Array.isArray(cached.optimal)) {
+      cachedSolution = cached.optimal;
+      cachedKind = "optimal";
+    } else if (mode === "fast") {
+      if (Array.isArray(cached.fast)) {
+        cachedSolution = cached.fast;
+        cachedKind = "fast";
+      } else if (Array.isArray(cached.optimal)) {
+        // An optimal solution is also a valid answer to a fast request.
+        cachedSolution = cached.optimal;
+        cachedKind = "optimal";
+      }
+    }
+  }
+
+  if (cachedSolution !== null) {
+    console.info(
+      `[solver] Cache hit: using the cached ${cachedKind} solution ` +
+      `(${cachedSolution.length} moves).`
+    );
+
+    startAutoPlay(cachedSolution, requestId, snapshot);
+    return;
+  }
+
+  // If S is pressed after an F solve, use that cached route as an upper bound
+  // instead of spending time finding another initial solution.
+  const seedSolution =
+    mode === "optimal" && cached && Array.isArray(cached.fast)
+      ? copySolverSolution(cached.fast)
+      : null;
+
+  const t0 = performance.now();
+
+  console.info(
+    `[solver] Starting inline Web Worker ${mode} solve.`
+  );
+
+  let worker;
+
+  try {
+    worker = new Worker(getInlineSolverWorkerURL());
+  } catch (error) {
+    console.error("[solver] Could not start the inline Web Worker:", error);
+    statusText.innerText = "Moves: " + state.moves + " (Solver error!)";
+    return;
+  }
+
+  solverWorker = worker;
+
+  worker.onmessage = (event) => {
+    if (requestId !== solveRequestId || solverWorker !== worker) return;
+
+    const data = event.data || {};
+
+    if (data.type === "progress") {
+      const now = performance.now();
+
+      if (data.important || now - lastProgressLogAt >= 1000) {
+        console.info(
+          `[solver] ${data.message} ` +
+          `(DFS states: ${(data.nodes || 0).toLocaleString()})`
+        );
+        lastProgressLogAt = now;
+      }
+
+      return;
+    }
+
+    if (data.type === "error") {
+      worker.terminate();
+      solverWorker = null;
+
+      console.error(
+        `[solver] Worker failed after ` +
+        `${(performance.now() - t0).toFixed(2)} ms:`,
+        data.error
+      );
+
+      statusText.innerText = "Moves: " + state.moves + " (Solver error!)";
+      return;
+    }
+
+    if (data.type !== "done") return;
+
+    worker.terminate();
+    solverWorker = null;
+
+    const elapsedMs = Number.isFinite(data.elapsedMs)
+      ? data.elapsedMs
+      : performance.now() - t0;
+
+    // Store results under the original starting state, even if the player
+    // changed the board while the worker was searching.
+    if (Array.isArray(data.fastSolution)) {
+      cacheSolverSolution(cacheKey, "fast", data.fastSolution);
+    }
+
+    if (Array.isArray(data.solution)) {
+      cacheSolverSolution(cacheKey, mode, data.solution);
+    }
+
+    // Do not play a route computed for a state that has since changed.
+    if (!isSameSolverStartState(snapshot)) {
+      console.warn(
+        "[solver] Game state changed during the search; " +
+        "discarding the stale result."
+      );
+      return;
+    }
+
+    if (!Array.isArray(data.solution)) {
+      console.warn(
+        `[solver] No solution found from the current state ` +
+        `(${elapsedMs.toFixed(2)} ms).`
+      );
+
+      statusText.innerText = "Moves: " + state.moves + " (Unsolvable!)";
+      return;
+    }
+
+    const solutionLabel = mode === "optimal" ? "Optimal" : "Fast-mode";
+
+    console.log(
+      `[solver] ${solutionLabel} solution found in ` +
+      `${elapsedMs.toFixed(2)} ms; steps: ${data.solution.length}.`
+    );
+
+    startAutoPlay(data.solution, requestId, snapshot);
+  };
+
+  worker.onerror = (event) => {
+    if (requestId !== solveRequestId || solverWorker !== worker) return;
+
+    worker.terminate();
+    solverWorker = null;
+
+    console.error(
+      `[solver] Worker error after ` +
+      `${(performance.now() - t0).toFixed(2)} ms: ` +
+      `${event.message || "unknown error"}`,
+      event.error || event
+    );
+
+    statusText.innerText = "Moves: " + state.moves + " (Solver error!)";
+  };
+
+  try {
+    worker.postMessage({
+      type: "solve",
+      initialGrid,
+      startX: snapshot.x,
+      startY: snapshot.y,
+      mode,
+      seedSolution
     });
+  } catch (error) {
+    worker.terminate();
+
+    if (solverWorker === worker) solverWorker = null;
+
+    console.error("[solver] Could not send the board to the worker:", error);
+    statusText.innerText = "Moves: " + state.moves + " (Solver error!)";
+  }
+});
+
+window.addEventListener("beforeunload", () => {
+  solveRequestId++;
+
+  if (solverWorker) {
+    solverWorker.terminate();
+    solverWorker = null;
+  }
+
+  if (autoPlayTimer !== null) {
+    clearInterval(autoPlayTimer);
+    autoPlayTimer = null;
+  }
+
+  if (inlineSolverWorkerURL !== null) {
+    URL.revokeObjectURL(inlineSolverWorkerURL);
+    inlineSolverWorkerURL = null;
+  }
+});
+
   </script>
   <script>
     let canvas = document.getElementById("canvas")
@@ -528,6 +1119,7 @@
         if (key == "arrowdown") move(0,1)
         if (key == "arrowleft") move(-1,0)
         if (key == "arrowright") move(1,0)
+        console.log(key)
         if (key == "r") state.reset()
         if (hasWon()) {
           btnNewLevel.classList.add("highlighted")
@@ -626,18 +1218,28 @@
       return grid
     }
     function load() {
-      let level = generateLevel(7,{
-        iter: 80,
-        lowValueAttraction: 1/100,
-        emptyValueAttraction: 100,
-        solidAttraction: 10,
-        minSolid: 1/0,//5,
-      })
+      let level = generateLevel(6,{
+        iter: 60,
+        lowValueAttraction: 400,
+        emptyValueAttraction: 1/1000,
+        solidAttraction: 0,
+        minSolid: 5,
+      })//*/
       loadLevel(level,0,0)
     }
     /*
     [
-      [3,1,0,1,0,0,0],
+    [1,1,1,2,2,4,3] // 42 moves optimal
+    [2,2,0,1,1,4,"solid"]
+    [1,1,0,1,0,3,"solid"]
+    [0,1,1,1,0,3,4]
+    [0,0,0,0,0,0,"solid"]
+    [0,0,0,0,0,0,0]
+    [0,0,0,0,0,0,0]
+    ]
+
+    [
+      [3,1,0,1,0,0,0], // 40 moves optimal
       [4,3,1,"solid",1,2,1],
       [1,1,0,1,1,1,1],
       [1,2,1,1,1,3,3],
@@ -646,13 +1248,22 @@
       [0,0,0,0,0,0,0],
     ]
     [
-      [1,1,"solid",0,0,0,0],
+      [1,1,"solid",0,0,0,0], // 40 moves optimal
       [1,1,2,2,1,1,1],
       [1,1,0,1,0,0,1],
       [2,1,2,3,2,1,1],
       [1,0,0,0,1,1,0],
       [0,0,0,0,3,2,1],
       [0,0,0,0,2,0,0],
+    ]
+
+    [
+      ["solid",4,2,1,1,0,0], // 43 moves optimal
+      [3,3,2,2,2,0,0],
+      [1,3,4,"solid",2,0,0],
+      [1,1,2,4,1,0,0],
+      [0,0,0,1,0,0,0],
+      [0,0,0,"solid",0,0,0]
     ]
     */
     load()
