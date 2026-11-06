@@ -1,20 +1,28 @@
 function simulateClick(x,y) {
-  let event = new MouseEvent('mousedown', {
+  const element = document.elementFromPoint(x, y);
+  if (!element) return null;
+
+  const eventInit = {
     view: window,
     bubbles: true,
     cancelable: true,
     clientX: x,
     clientY: y,
     screenX: x,
-    screenY: y
-  });
+    screenY: y,
+    button: 0 // Primary (left) mouse button
+  };
 
-  const element = document.elementFromPoint(x, y);
-  if (element) {
-    element.dispatchEvent(event);
-  }
-  element.click()
-  return element
+  // 1. Dispatch mousedown
+  element.dispatchEvent(new MouseEvent('mousedown', eventInit));
+
+  // 2. Dispatch mouseup
+  element.dispatchEvent(new MouseEvent('mouseup', eventInit));
+
+  // 3. Dispatch click
+  element.dispatchEvent(new MouseEvent('click', eventInit));
+
+  return element;
 }
 
 let keys = {}
