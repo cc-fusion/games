@@ -1,3 +1,21 @@
+function simulateClick(x,y) {
+  let event = new MouseEvent('click', {
+    view: window,
+    bubbles: true,
+    cancelable: true,
+    clientX: x,
+    clientY: y,
+    screenX: x,
+    screenY: y
+  });
+
+  const element = document.elementFromPoint(x, y);
+  if (element) {
+    element.dispatchEvent(event);
+  }
+  element.click()
+  return element
+}
 let keys = {}
 addEventListener("keydown", (e) => {
   let key = e.key.toLowerCase()
