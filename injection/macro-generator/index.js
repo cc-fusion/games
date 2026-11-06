@@ -1,4 +1,4 @@
-// Core click simulation helper provided
+// Core click simulation helper
 function simulateClick(x, y) {
     const element = document.elementFromPoint(x, y);
     if (!element) return null;
@@ -17,6 +17,20 @@ function simulateClick(x, y) {
     element.dispatchEvent(new MouseEvent('click', eventInit));
     return element;
 }
+
+// Provided Fake Cursor SVG Data URL
+const fakeCursorURL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40'%3E%3Cpath d='M3 2 L3 32 L10 25 L15 37 L20 35 L15 23 L26 23 Z' fill='black' stroke='white' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E";
+
+// Create and inject the virtual cursor element into the page
+const cursorEl = document.createElement('img');
+cursorEl.src = fakeCursorURL;
+cursorEl.style.position = 'fixed';
+cursorEl.style.width = '24px';
+cursorEl.style.height = '30px';
+cursorEl.style.zIndex = '999999'; // Stay on top of all elements
+cursorEl.style.pointerEvents = 'none'; // Don't block elementFromPoint clicks
+cursorEl.style.display = 'none'; // Hidden by default
+document.body.appendChild(cursorEl);
 
 // Track currently held keys
 let keys = {};
@@ -82,30 +96,32 @@ setInterval(() => {
     }
 
     // --- 2. HANDLE PLAYBACK ---
-    // Make sure we aren't trying to record and play at the same time
     if (keys[CONFIG.playbackKey] && !isRecording && macroTimeline.length > 0) {
         if (playbackIndex === 0) {
             console.log("%c▶️ Playing Macro...", "color: green; font-weight: bold;");
+            cursorEl.style.display = 'block'; // Show fake cursor when playback starts
         }
 
         // Get the current step in the macro sequence
         let currentStep = macroTimeline[playbackIndex];
 
         if (currentStep) {
+            // Update the fake cursor position on screen
+            cursorEl.style.left = `${currentStep.x}px`;
+            cursorEl.style.top = `${currentStep.y}px`;
+
             if (currentStep.clicked) {
                 // If the mouse was down during this tick, simulate a click
                 simulateClick(currentStep.x, currentStep.y);
-            } else {
-                // Optional visual feedback: log the cursor movement simulation
-                // console.log(`Simulating Hover at: X:${currentStep.x}, Y:${currentStep.y}`);
             }
         }
 
         // Advance to next step or loop back to the beginning
         playbackIndex = (playbackIndex + 1) % macroTimeline.length;
     } else {
-        // Reset playback index if key is released
+        // Reset playback index and hide the virtual cursor if the key is released
         playbackIndex = 0;
+        cursorEl.style.display = 'none';
     }
 
 }, CONFIG.intervalMs);
