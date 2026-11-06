@@ -1,5 +1,5 @@
 function simulateClick(x,y) {
-  let event = new MouseEvent('click', {
+  let event = new MouseEvent('mousedown', {
     view: window,
     bubbles: true,
     cancelable: true,
@@ -16,6 +16,7 @@ function simulateClick(x,y) {
   element.click()
   return element
 }
+
 let keys = {}
 addEventListener("keydown", (e) => {
   let key = e.key.toLowerCase()
