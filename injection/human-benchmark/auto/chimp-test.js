@@ -6,4 +6,4 @@ setInterval(() => {
     let elements = document.querySelectorAll("[data-cellnumber]")
 if (elements.length > 0) [...elements].sort((a,b)=>a.getAttribute("data-cellnumber")-b.getAttribute("data-cellnumber"))[0].click()
     
-},1000/14.8)
+})
