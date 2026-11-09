@@ -1,4 +1,15 @@
-let elements = document.querySelectorAll("div.square")
+let elements
+await new Promise((res) => {
+  let i = setInterval(() => {
+    elements = document.querySelectorAll("div.square")
+    if (elements.length > 0) {
+      clearInterval(i)
+      res()
+      return
+    }
+  })
+  
+})
 
 function press(element) {
   let event = new MouseEvent("mousedown", {
@@ -42,8 +53,13 @@ function callback(e) {
 
 for (let e of elements) initObserver(e, () => callback(e))
 
+let lastFrame = 0
+let fps = 15
 function animate() {
   requestAnimationFrame(animate)
+  if (Date.now() - lastFrame < 1000 / fps) return
+  lastFrame = Date.now()
+  
   if (history.length > 0 && Date.now() > lastEvent + timeout) {
     playing = true
   }
