@@ -8,8 +8,7 @@ function getWord() {
     return document.querySelector("div.word").innerText
 }
 let words = new Set()
-function animate() {
-  requestAnimationFrame(animate)
+setInterval(() => {
   let word = getWord()
   if (words.has(word)) {
       clickSeen()
@@ -17,5 +16,4 @@ function animate() {
       words.add(word)
       clickNew()
   }
-}
-requestAnimationFrame(animate)
+})
