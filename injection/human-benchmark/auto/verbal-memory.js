@@ -9,7 +9,7 @@ function getWord() {
 }
 let words = new Set()
 function animate() {
-  requestAnimateFrame(animate)
+  requestAnimationFrame(animate)
   let word = getWord()
   if (words.has(word)) {
       clickSeen()
@@ -18,4 +18,4 @@ function animate() {
       clickNew()
   }
 }
-requestAnimateFrame(animate)
+requestAnimationFrame(animate)
