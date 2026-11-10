@@ -55,7 +55,7 @@ function getNumber() {
 }
 let number = 0
 
-setInterval(() => {
+let interval = setInterval(() => {
   let tempNum = getNumber()
   if (tempNum != -1) {
     number = tempNum
@@ -65,3 +65,7 @@ setInterval(() => {
     document.querySelector(".css-1bnidmp").click()
   }
 }, 250)
+
+function STOP() {
+  clearInterval(interval)
+}
