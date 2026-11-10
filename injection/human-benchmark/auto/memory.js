@@ -38,6 +38,7 @@ async function play() {
     }
     return elements.length > 0
   })
+  console.log(document.querySelector(".css-1qk3bhi").innerHTML)
   let toClick = []
   let lastEvent = 1/0
   function callback(e) {
@@ -55,9 +56,8 @@ async function play() {
     if (Date.now() - lastEvent > 2000 && toClick.length > 0) playing = true
     if (!playing) return
     if (i >= toClick.length) {
-      for (let o of observers) o.disconnect()
       clearInterval(interval)
-      play()
+      for (let o of observers) o.disconnect()
       return
     }
     press(toClick[i])
@@ -65,4 +65,3 @@ async function play() {
   }, 1000/15)
   
 }
-
