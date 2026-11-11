@@ -29,9 +29,11 @@ function wait(callback,t=30) {
         },t)
     })
 }
-async function play() {
+let currentID = 0
+async function play(ID) {
   let elements
   await wait(() => {
+    if (ID != currentID) return
     try {
       elements = document.querySelector(".css-1qk3bhi").querySelectorAll(".css-hqmwod")
     } catch (e) {
@@ -53,6 +55,7 @@ async function play() {
   let i = 0
   let playing = false
   let interval = setInterval(() => {
+    if (ID != currentID) return
     if (Date.now() - lastEvent > 2000 && toClick.length > 0) playing = true
     if (!playing) return
     if (i >= toClick.length) {
@@ -67,5 +70,6 @@ async function play() {
 }
 initObserver(document.querySelector("span.css-4rar09"), (e) => {
   console.log("PLAYING")
-  play()
+  currentID = Math.random()
+  play(currentID)
 }, {characterData: true, childList: true, subtree: true})
