@@ -6,14 +6,15 @@ function press(element) {
   })
   element.dispatchEvent(event)
 }
-function initObserver(element, callback) {
-  let observer = new MutationObserver(callback)
-  observer.observe(element, { 
+function initObserver(element, callback, options = { 
     attributes: true, 
     attributeFilter: ['class'],
     characterData: true, 
     subtree: true 
-  })
+  }) {
+  let observer = new MutationObserver(callback)
+  observer.observe(element, options)
+  
     return observer
 }
 
@@ -38,7 +39,6 @@ async function play() {
     }
     return elements.length > 0
   })
-  console.log(document.querySelector(".css-1qk3bhi").innerHTML)
   let toClick = []
   let lastEvent = 1/0
   function callback(e) {
@@ -63,5 +63,9 @@ async function play() {
     press(toClick[i])
     i++
   }, 1000/15)
-  
+  return true
 }
+initObserver(document.querySelector("span.css-4rar09"), (e) => {
+  console.log("PLAYING")
+  play()
+}, {characterData: true, childList: true, subtree: true})
