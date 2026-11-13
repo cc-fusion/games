@@ -1,190 +1,380 @@
-0	'Dola Seed 2.0 Pro\nBytedance · Proprietary'	36
-1	'GPT-5.3 Chat\nOpenAI · Proprietary'	32
-2	'Grok 4.1 (Thinking)\nSpaceXAI · Proprietary'	31
-3	'GPT-5.5 Instant\nOpenAI · Proprietary'	30
-4	'Muse Spark 1.1\nMeta · Proprietary'	28
-5	'o3 (2025-04-16)\nOpenAI · Proprietary'	28
-6	'Gemini 3.8 Flash (High)\nGoogle · Proprietary'	27
-7	'Grok 4.1\nSpaceXAI · Proprietary'	27
-8	'Gemini 4 Argon (High)\nGoogle · Proprietary'	25
-9	'GPT-5.2 Chat (20260210)\nOpenAI · Proprietary'	25
-10	'o4-mini (2025-04-16)\nOpenAI · Proprietary'	24
-11	'Claude Opus 4.7 (High)\nAnthropic · Proprietary'	23
-12	'Muse Glimmer\nMeta · Apache-2.0'	23
-13	'Grok 4.20 Beta 1\nSpaceXAI · Proprietary'	22
-14	'Claude Fable 5 (High)\nAnthropic · Proprietary'	21
-15	'Muse Spark\nMeta · Proprietary'	21
-16	'Claude Opus 4.7\nAnthropic · Proprietary'	18
-17	'GPT-6 Sol (Max)\nOpenAI · Proprietary'	18
-18	'Muse Wonder (Max)\nMeta · Proprietary'	17
-19	'Claude Opus 4.1 (Thinking 16K, 20250805)\nAnthropic · Proprietary'	17
-20	'Grok 4.1 Fast (Reasoning)\nSpaceXAI · Proprietary'	17
-21	'Muse Spark 1.3 (Max)\nMeta · Proprietary'	16
-22	'Kimi K3 (Max)\nMoonshot · Kimi K3 license'	16
-23	'Grok 4.20 Beta (Reasoning, 0309)\nSpaceXAI · Proprietary'	16
-24	'Kimi K2 Preview (0905)\nMoonshot · Modified MIT'	16
-25	'Muse Spark 1.2 (xHigh)\nMeta · Proprietary'	15
-26	'Gemini 3.1 Pro Preview\nGoogle · Proprietary'	15
-27	'Claude Opus 4.5 (High, 32K, 20251101)\nAnthropic · Proprietary'	15
-28	'Grok 4.3\nSpaceXAI · Proprietary'	15
-29	'GLM-5.3 (Max)\nZ.ai · MIT'	14
-30	'GPT-5 (High)\nOpenAI · Proprietary'	14
-31	'Claude Opus 5 (High)\nAnthropic · Proprietary'	13
-32	'Gemini 3.7 Flash (High)\nGoogle · Proprietary'	13
-33	'GPT-6.1 Sol (Max)\nOpenAI · Proprietary'	13
-34	'GLM-5.3-Flash\nZ.ai · MIT'	13
-35	'GLM-5.2 (Max)\nZ.ai · MIT'	13
-36	'Grok 4.20 Multi-Agent Beta (0309)\nSpaceXAI · Proprietary'	13
-37	'Claude Opus 4.1 (20250805)\nAnthropic · Proprietary'	13
-38	'Claude Opus 4.8 (High)\nAnthropic · Proprietary'	12
-39	'Claude Opus 4.6 (High)\nAnthropic · Proprietary'	11
-40	'Qwen3.8-Max\nAlibaba · Proprietary'	11
-41	'Gemini 3.6 Flash (High)\nGoogle · Proprietary'	11
-42	'Claude Sonnet 4.6\nAnthropic · Proprietary'	11
-43	'Claude Opus 4.5 (20251101)\nAnthropic · Proprietary'	11
-44	'ERNIE 5.1\nBaidu · Proprietary'	11
-45	'DeepSeek-V4-Pro (High, 20260813)\nDeepSeek · MIT'	11
-46	'amazon-nova-experimental-chat (26-01-10)\nAmazon · Proprietary'	11
-47	'Claude Sonnet 4.5 (High, 32K, 20250929)\nAnthropic · Proprietary'	10
-48	'GPT-5.6 Sol (xHigh)\nOpenAI · Proprietary'	9
-49	'Gemini 3.5 Flash (Medium)\nGoogle · Proprietary'	9
-50	'Claude Opus 4.8\nAnthropic · Proprietary'	9
-51	'GLM-5.1\nZ.ai · MIT'	9
-52	'Claude Sonnet 5 (High)\nAnthropic · Proprietary'	9
-53	'Claude Opus 4.6\nAnthropic · Proprietary'	8
-54	'GPT-6 Astra (Max)\nOpenAI · Proprietary'	8
-55	'Qwen3.6-Max-Preview\nAlibaba · Proprietary'	8
-56	'Gemini 3.5 Flash-Lite\nGoogle · Proprietary'	8
-57	'Hy3\nTencent · Apache 2.0'	8
-58	'GPT-4.1 (2025-04-14)\nOpenAI · Proprietary'	8
-59	'Kimi K3.1 Pro (Max)\nMoonshot · Kimi K3.1 Pro License'	7
-60	'DeepSeek-V4.1-Flash-20260910 (Max)\nDeepSeek · MIT'	7
-61	'Gemini 3 Flash (Minimal)\nGoogle · Proprietary'	7
-62	'DeepSeek-V4-Pro Preview (High)\nDeepSeek · MIT'	7
-63	'ERNIE-5.0-Preview (1203)\nBaidu · Proprietary'	7
-64	'LongCat-Flash-Chat Exp (2602)\nMeituan · Proprietary'	7
-65	'Kimi K2 Thinking Turbo\nMoonshot · Modified MIT'	7
-66	'Trinity Large Preview\nApache 2.0'	7
-67	'Grok 4.6 (High)\nSpaceXAI · Proprietary'	6
-68	'Claude Sonnet 4.5 (20250929)\nAnthropic · Proprietary'	6
-69	'Qwen3.6-Plus\nAlibaba · Proprietary'	6
-70	'MiniMax-M2.5\nMiniMax · Modified MIT'	6
-71	'Gemini 4 Carbon (High)\nGoogle · Proprietary'	5
-72	'Gemini 3 Flash\nGoogle · Proprietary'	5
-73	'Kimi K2.6\nMoonshot · Modified MIT'	5
-74	'GLM-5\nZ.ai · MIT'	5
-75	'Kimi K2.5 (Thinking)\nMoonshot · Modified MIT'	5
-76	'Grok 4.7 (xHigh)\nSpaceXAI · Proprietary'	5
-77	'DeepSeek-V4-Flash Preview (High)\nDeepSeek · MIT'	5
-78	'GPT-5 Chat\nOpenAI · Proprietary'	5
-79	'Gemini 3 Pro\nGoogle · Proprietary'	4
-80	'MiMo-V2-Pro\nXiaomi · Proprietary'	4
-81	'Claude Fable 5.1 (Max)\nAnthropic · Proprietary'	3
-82	'DeepSeek-V4-Pro\nDeepSeek · MIT'	3
-83	'Qwen3.7-Plus\nAlibaba · Proprietary'	3
-84	'Gemma 4 31B\nGoogle · Apache 2.0'	3
-85	'MiniMax-M3\nMiniMax · MiniMax Community License'	3
-86	'Claude Opus 5.5 (High)\nAnthropic · Proprietary'	2
-87	'MiMo-V2.5-Pro\nXiaomi · MIT'	2
-88	'Kimi K2.5 (Instant)\nMoonshot · Modified MIT'	2
-89	'Claude Opus 5 (Max)\nAnthropic · Proprietary'	1
-90	'Claude Sonnet 5.5 (xHigh)\nAnthropic · Proprietary'	1
-91	'Grok 4.5\nSpaceXAI · Proprietary'	1
-92	'ERNIE 5.0 (0110)\nBaidu · Proprietary'	1
-93	'Mercury\nInception AI · Proprietary'	1
-94	'Gemini 3.5 Flash (High)\nGoogle · Proprietary'	0
-95	'Step 5 Preview\nStepFun · Proprietary'	0
-96	'GPT-5.4 mini (High)\nOpenAI · Proprietary'	0
-97	'Gemini 3.1 Flash-Lite Preview\nGoogle · Proprietary'	0
-98	'GPT-5.6 Terra (xHigh)\nOpenAI · Proprietary'	-1
-99	'MiMo-V2.6-Flash\nXiaomi · MIT'	-1
-100	'ChatGPT-4o Latest (20250326)\nOpenAI · Proprietary'	-1
-101	'Qwen3.8-27B\nAlibaba · Apache 2.0'	-1
-102	'Claude Haiku 5.5 (High)\nAnthropic · Proprietary'	-1
-103	'Qwen3-VL-235B-A22B-Instruct\nAlibaba · Apache 2.0'	-1
-104	'Mistral Large 4\nMistral · Modified MIT'	-2
-105	'Gemini 4 Hydrogen (High)\nGoogle · Proprietary'	-3
-106	'GPT-5.1 (High)\nOpenAI · Proprietary'	-3
-107	'Qwen3.5-397B-A17B\nAlibaba · Apache 2.0'	-3
-108	'GLM-4.7\nZ.ai · MIT'	-3
-109	'DeepSeek-V4-Flash\nDeepSeek · MIT'	-3
-110	'Hy3 preview\nTencent · tencent-hunyuan-community'	-3
-111	'Trinity Large Thinking\nApache 2.0'	-3
-112	'GPT-5.5 (High)\nOpenAI · Proprietary'	-4
-113	'GPT-5.2 (High)\nOpenAI · Proprietary'	-4
-114	'Mistral Medium 3.5\nMistral · Modified MIT'	-4
-115	'Claude Haiku 4.5 (20251001)\nAnthropic · Proprietary'	-4
-116	'GPT-5 mini (High)\nOpenAI · Proprietary'	-4
-117	'GLM-4.7-Flash\nZ.ai · MIT'	-4
-118	'MiMo-V2.6-Pro\nXiaomi · MIT'	-5
-119	'GPT-5.5\nOpenAI · Proprietary'	-5
-120	'MiMo-V2.5\nXiaomi · MIT'	-5
-121	'MiMo-V2-Omni\nXiaomi · Proprietary'	-5
-122	'Qwen3.7-Max-Preview\nAlibaba · Proprietary'	-6
-123	'GPT-5.1\nOpenAI · Proprietary'	-6
-124	'GPT-5.2\nOpenAI · Proprietary'	-6
-125	'NVIDIA-Nemotron-3-Ultra-550B-A55B (NVFP4)\nNvidia · OpenMDW-1.1'	-6
-126	'MiniMax-M1\nMiniMax · Apache 2.0'	-6
-127	'GPT-5.6 Luna (xHigh)\nOpenAI · Proprietary'	-7
-128	'Gemma 4 26B A4B\nGoogle · Apache 2.0'	-7
-129	'Beam 1.0 501B A23B\nReflection · Apache 2.0'	-7
-130	'MiniMax-M2.7\nMiniMax · Modified MIT'	-7
-131	'Grok 4 (0709)\nSpaceXAI · Proprietary'	-7
-132	'Granite 4.1 8B\nIBM · Apache 2.0'	-7
-133	'Qwen3-Max-Preview\nAlibaba · Proprietary'	-8
-134	'GPT-5.4 (High)\nOpenAI · Proprietary'	-9
-135	'Qwen3-235B-A22B-Instruct (2507)\nAlibaba · Apache 2.0'	-9
-136	'Command A (03-2025)\nCohere · CC-BY-NC-4.0'	-9
-137	'GPT-5.4\nOpenAI · Proprietary'	-10
-138	'Qwen3.5-Max-Preview\nAlibaba · Proprietary'	-10
-139	'Inkling\nThinky · Apache 2.0'	-10
-140	'DeepSeek-V3.2 (Thinking)\nDeepSeek · MIT'	-10
-141	'Inkling 2 Small\nThinky · Apache 2.0'	-11
-142	'Qwen3.5-27B\nAlibaba · Apache 2.0'	-11
-143	'DeepSeek-V3.2\nDeepSeek · MIT'	-12
-144	'Qwen3.5-122B-A10B\nAlibaba · Apache 2.0'	-12
-145	'NVIDIA-Nemotron-3.5-Super-VL-120B-A12B (NVFP4)\nNvidia · OpenMDW-1.1'	-12
-146	'Grok 4 Fast (Reasoning)\nSpaceXAI · Proprietary'	-12
-147	'Olmo 3 32B Think\nAi2 · Apache 2.0'	-12
-148	'Qwen3.5-35B-A3B\nAlibaba · Apache 2.0'	-13
-149	'Qwen3-Coder-480B-A35B-Instruct\nAlibaba · Apache 2.0'	-13
-150	'GLM-4.6V\nZ.ai · MIT'	-13
-151	'Olmo 3.1 32B Instruct\nAi2 · Apache 2.0'	-13
-152	'DeepSeek-V3.2-Exp\nDeepSeek · MIT'	-14
-153	'Gemma 3 27B IT\nGoogle · Gemma'	-14
-154	'Olmo 3.1 32B Think\nAi2 · Apache 2.0'	-14
-155	'GPT-5.4 nano (High)\nOpenAI · Proprietary'	-15
-156	'MiniMax-M2\nMiniMax · Apache 2.0'	-16
-157	'Gemini 2.5 Pro\nGoogle · Proprietary'	-17
-158	'INTELLECT-3\nMIT'	-17
-159	'Qwen3.5-Flash\nAlibaba · Proprietary'	-18
-160	'NVIDIA-Nemotron-3.5-Lightning-30B-A3B (NVFP4)\nNvidia · OpenMDW-1.1'	-18
-161	'Mistral Large 3\nMistral · Apache 2.0'	-19
-162	'Qwen3-Next-80B-A3B-Instruct\nAlibaba · Apache 2.0'	-20
-163	'DeepSeek-V3.2-Exp (Thinking)\nDeepSeek · MIT'	-21
-164	'Mistral Medium 3.1 (2508)\nMistral · Proprietary'	-21
-165	'Inkling-Small\nThinky · Apache 2.0'	-21
-166	'Gemini 2.5 Flash Preview (09-2025)\nGoogle · Proprietary'	-21
-167	'GLM-4.5-Air\nZ.ai · MIT'	-21
-168	'ERNIE-5.0-Preview (1022)\nBaidu · Proprietary'	-22
-169	'GLM-4.6\nZ.ai · MIT'	-23
-170	'Step-3.5-Flash\nStepFun · Apache 2.0'	-23
-171	'MiMo-V2-Flash (Thinking)\nXiaomi · MIT'	-23
-172	'GPT-6 Luna (Max)\nOpenAI · Proprietary'	-25
-173	'amazon-nova-experimental-chat (26-02-10)\nAmazon · Proprietary'	-25
-174	'Mercury 2\nInception AI · Proprietary'	-25
-175	'MiniMax-M2.1 Preview\nMiniMax · MIT'	-26
-176	'Gemini 2.5 Flash\nGoogle · Proprietary'	-27
-177	'Solar Pro 4\nUpstage · Proprietary'	-28
-178	'Gemini 2.5 Flash-Lite Preview (Non-Thinking, 09-2025)\nGoogle · Proprietary'	-28
-179	'NVIDIA-Nemotron-3-Super-120B-A12B\nNvidia · NVIDIA Open Model'	-29
-180	'amazon-nova-experimental-chat (12-10)\nAmazon · Proprietary'	-30
-181	'MiMo-V2-Flash (Non-Thinking)\nXiaomi · MIT'	-30
-182	'gpt-oss-120b\nOpenAI · Apache 2.0'	-33
-183	'Granite 4.2 3B\nIBM · Apache 2.0'	-34
-184	'Granite 4.2 30B\nIBM · Apache 2.0'	-36
-185	'Amazon Nova 2 Lite\nAmazon · Proprietary'	-44
-186	'NVIDIA-Nemotron-3-Nano-30B-A3B (BF16)\nNvidia · NVIDIA Open Model'	-48
-187	'amazon-nova-experimental-chat (10-20)\nAmazon · Proprietary'	-51
-188	'amazon-nova-experimental-chat (11-10)\nAmazon · Proprietary'	-52
-189	'Granite 4.2 8B\nIBM · Apache 2.0'	-52
+36	Dola Seed 2.0 Pro
+Bytedance · Proprietary
+32	GPT-5.3 Chat
+OpenAI · Proprietary
+31	Grok 4.1 (Thinking)
+SpaceXAI · Proprietary
+30	GPT-5.5 Instant
+OpenAI · Proprietary
+28	Muse Spark 1.1
+Meta · Proprietary
+28	o3 (2025-04-16)
+OpenAI · Proprietary
+27	Gemini 3.8 Flash (High)
+Google · Proprietary
+27	Grok 4.1
+SpaceXAI · Proprietary
+25	Gemini 4 Argon (High)
+Google · Proprietary
+25	GPT-5.2 Chat (20260210)
+OpenAI · Proprietary
+24	o4-mini (2025-04-16)
+OpenAI · Proprietary
+23	Claude Opus 4.7 (High)
+Anthropic · Proprietary
+23	Muse Glimmer
+Meta · Apache-2.0
+22	Grok 4.20 Beta 1
+SpaceXAI · Proprietary
+21	Claude Fable 5 (High)
+Anthropic · Proprietary
+21	Muse Spark
+Meta · Proprietary
+18	Claude Opus 4.7
+Anthropic · Proprietary
+18	GPT-6 Sol (Max)
+OpenAI · Proprietary
+17	Muse Wonder (Max)
+Meta · Proprietary
+17	Claude Opus 4.1 (Thinking 16K, 20250805)
+Anthropic · Proprietary
+17	Grok 4.1 Fast (Reasoning)
+SpaceXAI · Proprietary
+16	Muse Spark 1.3 (Max)
+Meta · Proprietary
+16	Kimi K3 (Max)
+Moonshot · Kimi K3 license
+16	Grok 4.20 Beta (Reasoning, 0309)
+SpaceXAI · Proprietary
+16	Kimi K2 Preview (0905)
+Moonshot · Modified MIT
+15	Muse Spark 1.2 (xHigh)
+Meta · Proprietary
+15	Gemini 3.1 Pro Preview
+Google · Proprietary
+15	Claude Opus 4.5 (High, 32K, 20251101)
+Anthropic · Proprietary
+15	Grok 4.3
+SpaceXAI · Proprietary
+14	GLM-5.3 (Max)
+Z.ai · MIT
+14	GPT-5 (High)
+OpenAI · Proprietary
+13	Claude Opus 5 (High)
+Anthropic · Proprietary
+13	Gemini 3.7 Flash (High)
+Google · Proprietary
+13	GPT-6.1 Sol (Max)
+OpenAI · Proprietary
+13	GLM-5.3-Flash
+Z.ai · MIT
+13	GLM-5.2 (Max)
+Z.ai · MIT
+13	Grok 4.20 Multi-Agent Beta (0309)
+SpaceXAI · Proprietary
+13	Claude Opus 4.1 (20250805)
+Anthropic · Proprietary
+12	Claude Opus 4.8 (High)
+Anthropic · Proprietary
+11	Claude Opus 4.6 (High)
+Anthropic · Proprietary
+11	Qwen3.8-Max
+Alibaba · Proprietary
+11	Gemini 3.6 Flash (High)
+Google · Proprietary
+11	Claude Sonnet 4.6
+Anthropic · Proprietary
+11	Claude Opus 4.5 (20251101)
+Anthropic · Proprietary
+11	ERNIE 5.1
+Baidu · Proprietary
+11	DeepSeek-V4-Pro (High, 20260813)
+DeepSeek · MIT
+11	amazon-nova-experimental-chat (26-01-10)
+Amazon · Proprietary
+10	Claude Sonnet 4.5 (High, 32K, 20250929)
+Anthropic · Proprietary
+9	GPT-5.6 Sol (xHigh)
+OpenAI · Proprietary
+9	Gemini 3.5 Flash (Medium)
+Google · Proprietary
+9	Claude Opus 4.8
+Anthropic · Proprietary
+9	GLM-5.1
+Z.ai · MIT
+9	Claude Sonnet 5 (High)
+Anthropic · Proprietary
+8	Claude Opus 4.6
+Anthropic · Proprietary
+8	GPT-6 Astra (Max)
+OpenAI · Proprietary
+8	Qwen3.6-Max-Preview
+Alibaba · Proprietary
+8	Gemini 3.5 Flash-Lite
+Google · Proprietary
+8	Hy3
+Tencent · Apache 2.0
+8	GPT-4.1 (2025-04-14)
+OpenAI · Proprietary
+7	Kimi K3.1 Pro (Max)
+Moonshot · Kimi K3.1 Pro License
+7	DeepSeek-V4.1-Flash-20260910 (Max)
+DeepSeek · MIT
+7	Gemini 3 Flash (Minimal)
+Google · Proprietary
+7	DeepSeek-V4-Pro Preview (High)
+DeepSeek · MIT
+7	ERNIE-5.0-Preview (1203)
+Baidu · Proprietary
+7	LongCat-Flash-Chat Exp (2602)
+Meituan · Proprietary
+7	Kimi K2 Thinking Turbo
+Moonshot · Modified MIT
+7	Trinity Large Preview
+Apache 2.0
+6	Grok 4.6 (High)
+SpaceXAI · Proprietary
+6	Claude Sonnet 4.5 (20250929)
+Anthropic · Proprietary
+6	Qwen3.6-Plus
+Alibaba · Proprietary
+6	MiniMax-M2.5
+MiniMax · Modified MIT
+5	Gemini 4 Carbon (High)
+Google · Proprietary
+5	Gemini 3 Flash
+Google · Proprietary
+5	Kimi K2.6
+Moonshot · Modified MIT
+5	GLM-5
+Z.ai · MIT
+5	Kimi K2.5 (Thinking)
+Moonshot · Modified MIT
+5	Grok 4.7 (xHigh)
+SpaceXAI · Proprietary
+5	DeepSeek-V4-Flash Preview (High)
+DeepSeek · MIT
+5	GPT-5 Chat
+OpenAI · Proprietary
+4	Gemini 3 Pro
+Google · Proprietary
+4	MiMo-V2-Pro
+Xiaomi · Proprietary
+3	Claude Fable 5.1 (Max)
+Anthropic · Proprietary
+3	DeepSeek-V4-Pro
+DeepSeek · MIT
+3	Qwen3.7-Plus
+Alibaba · Proprietary
+3	Gemma 4 31B
+Google · Apache 2.0
+3	MiniMax-M3
+MiniMax · MiniMax Community License
+2	Claude Opus 5.5 (High)
+Anthropic · Proprietary
+2	MiMo-V2.5-Pro
+Xiaomi · MIT
+2	Kimi K2.5 (Instant)
+Moonshot · Modified MIT
+1	Claude Opus 5 (Max)
+Anthropic · Proprietary
+1	Claude Sonnet 5.5 (xHigh)
+Anthropic · Proprietary
+1	Grok 4.5
+SpaceXAI · Proprietary
+1	ERNIE 5.0 (0110)
+Baidu · Proprietary
+1	Mercury
+Inception AI · Proprietary
+0	Gemini 3.5 Flash (High)
+Google · Proprietary
+0	Step 5 Preview
+StepFun · Proprietary
+0	GPT-5.4 mini (High)
+OpenAI · Proprietary
+0	Gemini 3.1 Flash-Lite Preview
+Google · Proprietary
+-1	GPT-5.6 Terra (xHigh)
+OpenAI · Proprietary
+-1	MiMo-V2.6-Flash
+Xiaomi · MIT
+-1	ChatGPT-4o Latest (20250326)
+OpenAI · Proprietary
+-1	Qwen3.8-27B
+Alibaba · Apache 2.0
+-1	Claude Haiku 5.5 (High)
+Anthropic · Proprietary
+-1	Qwen3-VL-235B-A22B-Instruct
+Alibaba · Apache 2.0
+-2	Mistral Large 4
+Mistral · Modified MIT
+-3	Gemini 4 Hydrogen (High)
+Google · Proprietary
+-3	GPT-5.1 (High)
+OpenAI · Proprietary
+-3	Qwen3.5-397B-A17B
+Alibaba · Apache 2.0
+-3	GLM-4.7
+Z.ai · MIT
+-3	DeepSeek-V4-Flash
+DeepSeek · MIT
+-3	Hy3 preview
+Tencent · tencent-hunyuan-community
+-3	Trinity Large Thinking
+Apache 2.0
+-4	GPT-5.5 (High)
+OpenAI · Proprietary
+-4	GPT-5.2 (High)
+OpenAI · Proprietary
+-4	Mistral Medium 3.5
+Mistral · Modified MIT
+-4	Claude Haiku 4.5 (20251001)
+Anthropic · Proprietary
+-4	GPT-5 mini (High)
+OpenAI · Proprietary
+-4	GLM-4.7-Flash
+Z.ai · MIT
+-5	MiMo-V2.6-Pro
+Xiaomi · MIT
+-5	GPT-5.5
+OpenAI · Proprietary
+-5	MiMo-V2.5
+Xiaomi · MIT
+-5	MiMo-V2-Omni
+Xiaomi · Proprietary
+-6	Qwen3.7-Max-Preview
+Alibaba · Proprietary
+-6	GPT-5.1
+OpenAI · Proprietary
+-6	GPT-5.2
+OpenAI · Proprietary
+-6	NVIDIA-Nemotron-3-Ultra-550B-A55B (NVFP4)
+Nvidia · OpenMDW-1.1
+-6	MiniMax-M1
+MiniMax · Apache 2.0
+-7	GPT-5.6 Luna (xHigh)
+OpenAI · Proprietary
+-7	Gemma 4 26B A4B
+Google · Apache 2.0
+-7	Beam 1.0 501B A23B
+Reflection · Apache 2.0
+-7	MiniMax-M2.7
+MiniMax · Modified MIT
+-7	Grok 4 (0709)
+SpaceXAI · Proprietary
+-7	Granite 4.1 8B
+IBM · Apache 2.0
+-8	Qwen3-Max-Preview
+Alibaba · Proprietary
+-9	GPT-5.4 (High)
+OpenAI · Proprietary
+-9	Qwen3-235B-A22B-Instruct (2507)
+Alibaba · Apache 2.0
+-9	Command A (03-2025)
+Cohere · CC-BY-NC-4.0
+-10	GPT-5.4
+OpenAI · Proprietary
+-10	Qwen3.5-Max-Preview
+Alibaba · Proprietary
+-10	Inkling
+Thinky · Apache 2.0
+-10	DeepSeek-V3.2 (Thinking)
+DeepSeek · MIT
+-11	Inkling 2 Small
+Thinky · Apache 2.0
+-11	Qwen3.5-27B
+Alibaba · Apache 2.0
+-12	DeepSeek-V3.2
+DeepSeek · MIT
+-12	Qwen3.5-122B-A10B
+Alibaba · Apache 2.0
+-12	NVIDIA-Nemotron-3.5-Super-VL-120B-A12B (NVFP4)
+Nvidia · OpenMDW-1.1
+-12	Grok 4 Fast (Reasoning)
+SpaceXAI · Proprietary
+-12	Olmo 3 32B Think
+Ai2 · Apache 2.0
+-13	Qwen3.5-35B-A3B
+Alibaba · Apache 2.0
+-13	Qwen3-Coder-480B-A35B-Instruct
+Alibaba · Apache 2.0
+-13	GLM-4.6V
+Z.ai · MIT
+-13	Olmo 3.1 32B Instruct
+Ai2 · Apache 2.0
+-14	DeepSeek-V3.2-Exp
+DeepSeek · MIT
+-14	Gemma 3 27B IT
+Google · Gemma
+-14	Olmo 3.1 32B Think
+Ai2 · Apache 2.0
+-15	GPT-5.4 nano (High)
+OpenAI · Proprietary
+-16	MiniMax-M2
+MiniMax · Apache 2.0
+-17	Gemini 2.5 Pro
+Google · Proprietary
+-17	INTELLECT-3
+MIT
+-18	Qwen3.5-Flash
+Alibaba · Proprietary
+-18	NVIDIA-Nemotron-3.5-Lightning-30B-A3B (NVFP4)
+Nvidia · OpenMDW-1.1
+-19	Mistral Large 3
+Mistral · Apache 2.0
+-20	Qwen3-Next-80B-A3B-Instruct
+Alibaba · Apache 2.0
+-21	DeepSeek-V3.2-Exp (Thinking)
+DeepSeek · MIT
+-21	Mistral Medium 3.1 (2508)
+Mistral · Proprietary
+-21	Inkling-Small
+Thinky · Apache 2.0
+-21	Gemini 2.5 Flash Preview (09-2025)
+Google · Proprietary
+-21	GLM-4.5-Air
+Z.ai · MIT
+-22	ERNIE-5.0-Preview (1022)
+Baidu · Proprietary
+-23	GLM-4.6
+Z.ai · MIT
+-23	Step-3.5-Flash
+StepFun · Apache 2.0
+-23	MiMo-V2-Flash (Thinking)
+Xiaomi · MIT
+-25	GPT-6 Luna (Max)
+OpenAI · Proprietary
+-25	amazon-nova-experimental-chat (26-02-10)
+Amazon · Proprietary
+-25	Mercury 2
+Inception AI · Proprietary
+-26	MiniMax-M2.1 Preview
+MiniMax · MIT
+-27	Gemini 2.5 Flash
+Google · Proprietary
+-28	Solar Pro 4
+Upstage · Proprietary
+-28	Gemini 2.5 Flash-Lite Preview (Non-Thinking, 09-2025)
+Google · Proprietary
+-29	NVIDIA-Nemotron-3-Super-120B-A12B
+Nvidia · NVIDIA Open Model
+-30	amazon-nova-experimental-chat (12-10)
+Amazon · Proprietary
+-30	MiMo-V2-Flash (Non-Thinking)
+Xiaomi · MIT
+-33	gpt-oss-120b
+OpenAI · Apache 2.0
+-34	Granite 4.2 3B
+IBM · Apache 2.0
+-36	Granite 4.2 30B
+IBM · Apache 2.0
+-44	Amazon Nova 2 Lite
+Amazon · Proprietary
+-48	NVIDIA-Nemotron-3-Nano-30B-A3B (BF16)
+Nvidia · NVIDIA Open Model
+-51	amazon-nova-experimental-chat (10-20)
+Amazon · Proprietary
+-52	amazon-nova-experimental-chat (11-10)
+Amazon · Proprietary
+-52	Granite 4.2 8B
+IBM · Apache 2.0
