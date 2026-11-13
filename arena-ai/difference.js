@@ -17,6 +17,6 @@ const sortedDifferences = normalState
   .sort((a, b) => b.difference - a.difference); // Sorts descending (highest difference first)
 let x = ""
 for (let d of sortedDifferences) {
-    x += `${d.difference}\t${d.model}\n`
+    x += `${d.difference}\t${d.model.replaceAll("\t", " ").replaceAll("\n", "\t")}\n`
 }
 console.log(x)
